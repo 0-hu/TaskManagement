@@ -32,42 +32,52 @@
 - Node.js 18+
 - npm
 
-### 1. 저장소 클론
+### 원샷 설치 및 실행 ⚡ (추천)
 ```bash
+# 1. 저장소 클론
 git clone <repository-url>
 cd TaskManagement
+
+# 2. 초기 설정 (처음 한 번만)
+./setup.sh
+
+# 3. 개발 서버 시작
+./dev.sh start
 ```
 
-### 2. 백엔드 시작
+완료!
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:3001/api
+
+### 수동 설치 (선택)
+<details>
+<summary>수동으로 설정하려면 클릭</summary>
+
+#### 백엔드 시작
 ```bash
 cd backend
 npm install
 npx prisma generate
-npx prisma migrate dev
+npx prisma migrate dev --name init
 npm run start:dev
 ```
 
-백엔드 서버: `http://localhost:3001`
-API 문서: `http://localhost:3001/api`
-
-**참고**: PostgreSQL 설정이 필요합니다. 자세한 내용은 [LOCAL-DEV-SETUP.md](./LOCAL-DEV-SETUP.md)
-
-### 3. 프론트엔드 시작
+#### 프론트엔드 시작
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+</details>
 
-프론트엔드 서버: `http://localhost:3000`
-
-### 4. 통합 개발 스크립트 사용 (추천)
+### 개발 스크립트 명령어
 ```bash
-# 프로젝트 루트에서
-./dev.sh start    # 백엔드와 프론트엔드 모두 시작
+./setup.sh        # 초기 설정 (처음 한 번만)
+./dev.sh start    # 서버 시작
+./dev.sh stop     # 서버 중지
+./dev.sh restart  # 서버 재시작
 ./dev.sh status   # 상태 확인
 ./dev.sh logs all # 로그 확인
-./dev.sh stop     # 모든 서비스 중지
 ```
 
 ## 📚 상세 문서
