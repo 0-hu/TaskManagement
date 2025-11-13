@@ -50,6 +50,8 @@ npm run start:dev
 백엔드 서버: `http://localhost:3001`
 API 문서: `http://localhost:3001/api`
 
+**참고**: PostgreSQL 설정이 필요합니다. 자세한 내용은 [LOCAL-DEV-SETUP.md](./LOCAL-DEV-SETUP.md)
+
 ### 3. 프론트엔드 시작
 ```bash
 cd frontend
@@ -99,6 +101,12 @@ cd backend && npm run build
 # 프론트엔드 빌드
 cd frontend && npm run build
 ```
+
+## 🚀 배포
+간편하게 무료로 배포하기:
+- **빠른 시작**: [DEPLOYMENT-QUICKSTART.md](./DEPLOYMENT-QUICKSTART.md) (5분)
+- **상세 가이드**: [DEPLOYMENT.md](./DEPLOYMENT.md)
+- **플랫폼**: Vercel (Frontend) + Railway (Backend + PostgreSQL)
 
 ## 📄 라이선스
 MIT License
