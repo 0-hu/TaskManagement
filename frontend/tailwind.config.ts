@@ -32,13 +32,22 @@ const config: Config = {
         },
         // UI colors
         ui: {
-          background: '#F5F5F5',
+          background: '#F8F9FA',
           card: '#FFFFFF',
-          border: '#E0E0E0',
-          text: '#424242',
-          textSecondary: '#616161',
+          border: '#E5E7EB',
+          text: '#333333',
+          textSecondary: '#6B7280',
           primary: '#4D7CFF',
         },
+      },
+      borderRadius: {
+        'xl': '12px',
+        '2xl': '16px',
+        '3xl': '20px',
+      },
+      boxShadow: {
+        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+        'card-hover': '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)',
       },
     },
   },
