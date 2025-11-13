@@ -32,7 +32,9 @@ DATABASE_URL = ${{Postgres.DATABASE_URL}}
 JWT_SECRET = my-super-secret-key-12345
 JWT_EXPIRES_IN = 7d
 NODE_ENV = production
+FRONTEND_URL = https://??????.vercel.app
 ```
+**(Vercel URL은 나중에 업데이트)**
 
 ### Domain 생성
 Settings → Generate Domain
