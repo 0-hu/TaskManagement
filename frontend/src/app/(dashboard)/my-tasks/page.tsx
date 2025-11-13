@@ -15,6 +15,7 @@ import {
   Trash2,
   X,
   ChevronDown,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { tasksApi, type CreateTaskDto, type UpdateTaskDto } from '@/lib/api';
@@ -283,7 +284,11 @@ export default function MyTasksPage() {
       {/* Empty State */}
       {tasks.length === 0 && (
         <div className="bg-white rounded-xl p-12 text-center shadow-card border border-ui-border">
-          <div className="text-6xl mb-4">📋</div>
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center">
+              <ClipboardList className="w-12 h-12 text-gray-400" />
+            </div>
+          </div>
           <h2 className="text-xl font-bold text-ui-text mb-2">업무가 없습니다</h2>
           <p className="text-ui-textSecondary mb-6">
             새로운 업무를 생성하거나 할당받아 보세요

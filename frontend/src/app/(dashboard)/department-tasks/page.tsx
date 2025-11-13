@@ -13,6 +13,8 @@ import {
   Trash2,
   X,
   Search,
+  Building2,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { departmentsApi, tasksApi } from '@/lib/api';
@@ -172,7 +174,11 @@ export default function DepartmentTasksPage() {
 
       {departments.length === 0 && (
         <div className="bg-white rounded-xl p-12 text-center shadow-card border border-ui-border">
-          <div className="text-6xl mb-4">🏢</div>
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center">
+              <Building2 className="w-12 h-12 text-gray-400" />
+            </div>
+          </div>
           <h2 className="text-xl font-bold text-ui-text mb-2">부서가 없습니다</h2>
           <p className="text-ui-textSecondary mb-6">
             새로운 부서를 생성하여 팀 업무를 관리하세요
@@ -329,7 +335,11 @@ export default function DepartmentTasksPage() {
 
             {departmentTasks.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center shadow-card border border-ui-border">
-                <div className="text-6xl mb-4">📋</div>
+                <div className="flex justify-center mb-4">
+                  <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center">
+                    <ClipboardList className="w-12 h-12 text-gray-400" />
+                  </div>
+                </div>
                 <h2 className="text-xl font-bold text-ui-text mb-2">부서 업무가 없습니다</h2>
                 <p className="text-ui-textSecondary mb-6">
                   새로운 부서 업무를 생성하세요

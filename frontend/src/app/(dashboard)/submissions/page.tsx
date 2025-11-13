@@ -190,7 +190,11 @@ export default function SubmissionsPage() {
         <h2 className="text-lg font-bold text-ui-text mb-4">제출 목록</h2>
         {submissions.length === 0 ? (
           <div className="bg-white rounded-xl p-12 text-center shadow-card border border-ui-border">
-            <div className="text-6xl mb-4">📝</div>
+            <div className="flex justify-center mb-4">
+              <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center">
+                <FileText className="w-12 h-12 text-gray-400" />
+              </div>
+            </div>
             <h2 className="text-xl font-bold text-ui-text mb-2">제출 내역이 없습니다</h2>
             <p className="text-ui-textSecondary">
               제출된 업무가 없습니다
