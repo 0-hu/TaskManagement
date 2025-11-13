@@ -1,3 +1,7 @@
+import { Avatar } from '@/components/atoms/avatar';
+
+const sampleUsers = ['김철수', '이영희', '박민수', '정수진', '최민지'];
+
 export default function DashboardPage() {
   const stats = [
     { label: '총 개수', value: 138, color: 'bg-stat-total' },
@@ -87,10 +91,8 @@ export default function DashboardPage() {
                 샘플 업무 제목 {i}
               </h3>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 bg-ui-primary rounded-full flex items-center justify-center text-white text-xs">
-                  U
-                </div>
-                <span className="text-sm text-ui-textSecondary">담당자</span>
+                <Avatar name={sampleUsers[i % sampleUsers.length]} size="xs" />
+                <span className="text-sm text-ui-textSecondary">{sampleUsers[i % sampleUsers.length]}</span>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-ui-textSecondary">
@@ -146,10 +148,8 @@ export default function DashboardPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-ui-primary rounded-full flex items-center justify-center text-white text-xs">
-                        U
-                      </div>
-                      <span className="text-sm text-ui-text">사용자</span>
+                      <Avatar name={sampleUsers[i % sampleUsers.length]} size="xs" />
+                      <span className="text-sm text-ui-text">{sampleUsers[i % sampleUsers.length]}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

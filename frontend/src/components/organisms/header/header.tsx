@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
+import { Avatar } from '@/components/atoms/avatar';
 
 export function Header() {
   const router = useRouter();
@@ -30,9 +31,7 @@ export function Header() {
         </button>
 
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-ui-primary rounded-full flex items-center justify-center text-white font-medium">
-            {user?.name?.charAt(0) || 'U'}
-          </div>
+          <Avatar name={user?.name || 'User'} size="md" />
           <div className="text-sm">
             <div className="font-medium text-ui-text">{user?.name || 'User'}</div>
             <div className="text-ui-textSecondary text-xs">{user?.role || 'USER'}</div>
