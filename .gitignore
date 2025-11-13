@@ -43,3 +43,8 @@ docker-compose.override.yml
 
 # OS
 Thumbs.db
+
+# Dev script
+logs/
+.backend.pid
+.frontend.pid

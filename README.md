@@ -197,14 +197,51 @@ npx prisma db seed
 
 ### 6. 개발 서버 실행
 
-**Backend**:
+#### 방법 1: 개발 스크립트 사용 (추천) ⭐
+
+프로젝트 루트에서 `dev.sh` 스크립트로 한 번에 관리:
+
+```bash
+# 프로젝트 루트로 이동
+cd /path/to/TaskManagement
+
+# 모든 서비스 시작
+./dev.sh start
+
+# 상태 확인
+./dev.sh status
+
+# 로그 확인
+./dev.sh logs all
+
+# 재시작
+./dev.sh restart
+
+# 중지
+./dev.sh stop
+```
+
+**주요 명령어**:
+- `./dev.sh start` - Backend와 Frontend 모두 시작
+- `./dev.sh stop` - 모든 서비스 중지
+- `./dev.sh restart` - 재시작
+- `./dev.sh status` - 실행 상태 확인
+- `./dev.sh logs [backend|frontend|all] [라인수]` - 로그 보기
+
+**로그 위치**:
+- Backend: `logs/backend.log`
+- Frontend: `logs/frontend.log`
+
+#### 방법 2: 수동 실행
+
+**Backend** (터미널 1):
 ```bash
 cd backend
 npm run start:dev
 # http://localhost:3001
 ```
 
-**Frontend** (새 터미널):
+**Frontend** (터미널 2):
 ```bash
 cd frontend
 npm run dev
