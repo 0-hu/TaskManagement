@@ -1,47 +1,106 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { Avatar } from '@/components/atoms/avatar';
 import {
   List,
   Layers,
   Target,
-  CheckCircle2,
+  AlertTriangle,
   Calendar,
   Plus,
   ChevronRight,
   MoreVertical,
-  AlertTriangle,
 } from 'lucide-react';
-
-const sampleUsers = ['김철수', '이영희', '박민수', '정수진', '최민지'];
+import { useAuthStore } from '@/stores/auth-store';
+import { statsApi, tasksApi } from '@/lib/api';
+import type { DashboardStats } from '@/lib/api/stats';
+import type { Task } from '@/types/task';
 
 export default function DashboardPage() {
+  const { token } = useAuthStore();
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [recentTasks, setRecentTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [stats, tasksResponse] = await Promise.all([
+          statsApi.getDashboardStats(token),
+          tasksApi.getAll({ page: 1, limit: 9 }, token),
+        ]);
+
+        setDashboardStats(stats);
+        setRecentTasks(tasksResponse.tasks || []);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-ui-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-ui-textSecondary">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <p className="text-ui-text font-medium mb-2">데이터를 불러오는데 실패했습니다</p>
+          <p className="text-ui-textSecondary text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   const stats = [
     {
       label: '전체 업무',
-      value: 138,
-      description: '이번 달 생성 24건',
+      value: dashboardStats?.totalTasks || 0,
+      description: `완료율 ${dashboardStats?.completionRate.toFixed(1) || 0}%`,
       color: 'bg-stat-total',
       icon: List,
     },
     {
       label: '진행 중',
-      value: 54,
-      description: '평균 처리 3.2일',
+      value: dashboardStats?.inProgressTasks || 0,
+      description: `평균 진행률 ${dashboardStats?.averageProgress.toFixed(1) || 0}%`,
       color: 'bg-stat-inProgress',
       icon: Layers,
     },
     {
-      label: '지연',
-      value: 8,
-      description: '평균 지연 2.4일',
+      label: '완료',
+      value: dashboardStats?.completedTasks || 0,
+      description: `전체 ${dashboardStats?.totalTasks || 0}건 중`,
       color: 'bg-stat-completed',
-      icon: AlertTriangle,
+      icon: Target,
     },
     {
-      label: '이번 달 계획',
-      value: 63,
-      description: '검토 대기 11건',
+      label: '예정',
+      value: dashboardStats?.scheduledTasks || 0,
+      description: '곧 시작 예정',
       color: 'bg-stat-scheduled',
-      icon: Target,
+      icon: AlertTriangle,
     },
   ];
 
@@ -124,35 +183,35 @@ export default function DashboardPage() {
           </button>
         </div>
         <div className="grid grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {recentTasks.slice(0, 6).map((task) => (
             <div
-              key={i}
+              key={task.id}
               className="bg-white rounded-xl p-5 shadow-card hover:shadow-card-hover transition-all border border-ui-border cursor-pointer"
             >
               <div className="flex items-start justify-between mb-3">
-                <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-lg">
-                  진행중
+                <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-lg ${getStatusColor(task.status)}`}>
+                  {getStatusLabel(task.status)}
                 </span>
                 <button className="text-ui-textSecondary hover:text-ui-text">
                   <MoreVertical className="w-4 h-4" />
                 </button>
               </div>
               <h3 className="font-semibold text-ui-text mb-3 line-clamp-2 leading-snug">
-                월간 보고서 작성 및 검토 {i}
+                {task.title}
               </h3>
               <div className="flex items-center gap-2 mb-4">
-                <Avatar name={sampleUsers[i % sampleUsers.length]} size="xs" />
-                <span className="text-sm text-ui-textSecondary">{sampleUsers[i % sampleUsers.length]}</span>
+                <Avatar name={task.createdById} size="xs" />
+                <span className="text-sm text-ui-textSecondary">{task.createdById.split('-')[0]}</span>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-xs">
                   <span className="text-ui-textSecondary">진행률</span>
-                  <span className="font-medium text-ui-text">{50 + (i * 5)}%</span>
+                  <span className="font-medium text-ui-text">{task.progress}%</span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2">
                   <div
                     className="bg-ui-primary h-2 rounded-full transition-all"
-                    style={{ width: `${50 + (i * 5)}%` }}
+                    style={{ width: `${task.progress}%` }}
                   ></div>
                 </div>
               </div>
@@ -178,7 +237,7 @@ export default function DashboardPage() {
                   제목
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-ui-textSecondary">
-                  담당자
+                  생성자
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-ui-textSecondary">
                   상태
@@ -192,28 +251,28 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-ui-border">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <tr key={i} className="hover:bg-gray-50 cursor-pointer transition-colors">
+              {recentTasks.slice(0, 5).map((task) => (
+                <tr key={task.id} className="hover:bg-gray-50 cursor-pointer transition-colors">
                   <td className="px-6 py-4 text-sm font-medium text-ui-text">
-                    월간 보고서 작성 및 검토 {i}
+                    {task.title}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <Avatar name={sampleUsers[i % sampleUsers.length]} size="xs" />
-                      <span className="text-sm text-ui-text">{sampleUsers[i % sampleUsers.length]}</span>
+                      <Avatar name={task.createdById} size="xs" />
+                      <span className="text-sm text-ui-text">{task.createdById.split('-')[0]}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-lg">
-                      진행중
+                    <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-lg ${getStatusColor(task.status)}`}>
+                      {getStatusLabel(task.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-ui-textSecondary">
-                    2025.11.{20 + i}
+                    {task.dueDate ? new Date(task.dueDate).toLocaleDateString('ko-KR') : '-'}
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-amber-50 text-amber-700 rounded-lg">
-                      중간
+                    <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-lg ${getPriorityColor(task.priority)}`}>
+                      {getPriorityLabel(task.priority)}
                     </span>
                   </td>
                 </tr>
@@ -229,4 +288,65 @@ export default function DashboardPage() {
       </button>
     </div>
   );
+}
+
+// Helper functions
+function getStatusColor(status: string): string {
+  switch (status) {
+    case 'TODO':
+      return 'bg-gray-50 text-gray-700';
+    case 'IN_PROGRESS':
+      return 'bg-blue-50 text-blue-700';
+    case 'COMPLETED':
+      return 'bg-green-50 text-green-700';
+    case 'ON_HOLD':
+      return 'bg-amber-50 text-amber-700';
+    default:
+      return 'bg-gray-50 text-gray-700';
+  }
+}
+
+function getStatusLabel(status: string): string {
+  switch (status) {
+    case 'TODO':
+      return '할일';
+    case 'IN_PROGRESS':
+      return '진행중';
+    case 'COMPLETED':
+      return '완료';
+    case 'ON_HOLD':
+      return '대기';
+    default:
+      return status;
+  }
+}
+
+function getPriorityColor(priority: string): string {
+  switch (priority) {
+    case 'LOW':
+      return 'bg-green-50 text-green-700';
+    case 'MEDIUM':
+      return 'bg-amber-50 text-amber-700';
+    case 'HIGH':
+      return 'bg-orange-50 text-orange-700';
+    case 'URGENT':
+      return 'bg-red-50 text-red-700';
+    default:
+      return 'bg-gray-50 text-gray-700';
+  }
+}
+
+function getPriorityLabel(priority: string): string {
+  switch (priority) {
+    case 'LOW':
+      return '낮음';
+    case 'MEDIUM':
+      return '중간';
+    case 'HIGH':
+      return '높음';
+    case 'URGENT':
+      return '긴급';
+    default:
+      return priority;
+  }
 }
