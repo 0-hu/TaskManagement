@@ -40,3 +40,10 @@ lerna-debug.log*
 
 # Prisma
 prisma/migrations/migration_lock.toml
+
+# Database files
+*.db
+*.db-journal
+prisma/*.db
+prisma/*.db-journal
+
