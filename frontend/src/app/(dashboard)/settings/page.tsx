@@ -3,16 +3,23 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { Avatar } from '@/components/atoms/avatar';
+import { User, Settings as SettingsIcon, Bell, Users, LucideIcon } from 'lucide-react';
 
 export default function SettingsPage() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('profile');
 
-  const tabs = [
-    { id: 'profile', label: '프로필 설정', icon: '👤' },
-    { id: 'account', label: '계정 설정', icon: '⚙️' },
-    { id: 'notifications', label: '알림 설정', icon: '🔔' },
-    { id: 'department', label: '부서 관리', icon: '👥' },
+  interface Tab {
+    id: string;
+    label: string;
+    icon: LucideIcon;
+  }
+
+  const tabs: Tab[] = [
+    { id: 'profile', label: '프로필 설정', icon: User },
+    { id: 'account', label: '계정 설정', icon: SettingsIcon },
+    { id: 'notifications', label: '알림 설정', icon: Bell },
+    { id: 'department', label: '부서 관리', icon: Users },
   ];
 
   return (
@@ -27,27 +34,30 @@ export default function SettingsPage() {
       <div className="grid grid-cols-4 gap-6">
         {/* Tabs */}
         <div className="col-span-1">
-          <div className="bg-white rounded-lg shadow-sm border border-ui-border overflow-hidden">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                  activeTab === tab.id
-                    ? 'bg-ui-primary text-white'
-                    : 'text-ui-text hover:bg-gray-50'
-                }`}
-              >
-                <span className="text-lg">{tab.icon}</span>
-                <span className="text-sm font-medium">{tab.label}</span>
-              </button>
-            ))}
+          <div className="bg-white rounded-xl shadow-card border border-ui-border overflow-hidden">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-ui-primary text-white'
+                      : 'text-ui-text hover:bg-gray-50'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-sm font-medium">{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Content */}
         <div className="col-span-3">
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-ui-border">
+          <div className="bg-white rounded-xl p-6 shadow-card border border-ui-border">
             {activeTab === 'profile' && (
               <div className="space-y-6">
                 <h2 className="text-lg font-bold text-ui-text">프로필 설정</h2>
@@ -55,7 +65,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-6">
                   <Avatar name={user?.name || 'User'} size="xl" />
                   <div>
-                    <button className="px-4 py-2 text-sm bg-ui-primary text-white rounded-lg hover:bg-blue-700 mb-2">
+                    <button className="px-4 py-2 text-sm bg-ui-primary text-white rounded-xl hover:bg-blue-600 transition-all mb-2 font-medium">
                       사진 변경
                     </button>
                     <p className="text-xs text-ui-textSecondary">
@@ -72,7 +82,7 @@ export default function SettingsPage() {
                     <input
                       type="text"
                       defaultValue={user?.name}
-                      className="w-full px-4 py-2 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ui-primary"
+                      className="w-full px-4 py-2.5 border border-ui-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ui-primary/30 focus:border-ui-primary transition-all"
                     />
                   </div>
 
@@ -83,7 +93,7 @@ export default function SettingsPage() {
                     <input
                       type="email"
                       defaultValue={user?.email}
-                      className="w-full px-4 py-2 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ui-primary"
+                      className="w-full px-4 py-2.5 border border-ui-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ui-primary/30 focus:border-ui-primary transition-all"
                     />
                   </div>
 
@@ -94,7 +104,7 @@ export default function SettingsPage() {
                     <input
                       type="tel"
                       placeholder="010-1234-5678"
-                      className="w-full px-4 py-2 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ui-primary"
+                      className="w-full px-4 py-2.5 border border-ui-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ui-primary/30 focus:border-ui-primary transition-all"
                     />
                   </div>
 
@@ -133,7 +143,7 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="password"
-                      className="w-full px-4 py-2 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ui-primary"
+                      className="w-full px-4 py-2.5 border border-ui-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ui-primary/30 focus:border-ui-primary transition-all"
                     />
                   </div>
 
@@ -143,7 +153,7 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="password"
-                      className="w-full px-4 py-2 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ui-primary"
+                      className="w-full px-4 py-2.5 border border-ui-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ui-primary/30 focus:border-ui-primary transition-all"
                     />
                   </div>
 
@@ -153,7 +163,7 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="password"
-                      className="w-full px-4 py-2 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ui-primary"
+                      className="w-full px-4 py-2.5 border border-ui-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ui-primary/30 focus:border-ui-primary transition-all"
                     />
                   </div>
 
