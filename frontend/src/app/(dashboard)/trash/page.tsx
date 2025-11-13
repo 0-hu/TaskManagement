@@ -1,4 +1,14 @@
+'use client';
+
+import { useState } from 'react';
 import { Avatar } from '@/components/atoms/avatar';
+import {
+  Trash2,
+  RotateCcw,
+  AlertTriangle,
+  Search,
+  ChevronDown,
+} from 'lucide-react';
 
 const deletedTasks = [
   {
@@ -36,6 +46,22 @@ const deletedTasks = [
 ];
 
 export default function TrashPage() {
+  const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
+
+  const toggleSelection = (id: number) => {
+    setSelectedTasks((prev) =>
+      prev.includes(id) ? prev.filter((taskId) => taskId !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedTasks(
+      selectedTasks.length === deletedTasks.length
+        ? []
+        : deletedTasks.map((t) => t.id)
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -45,90 +71,135 @@ export default function TrashPage() {
             삭제된 업무는 30일 후 영구 삭제됩니다
           </p>
         </div>
-        <div className="flex gap-2">
-          <button className="px-4 py-2 text-sm border border-ui-border text-ui-text rounded-lg hover:bg-gray-50">
-            선택 항목 복원
+        <div className="flex gap-3">
+          <button
+            disabled={selectedTasks.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm border border-ui-border text-ui-text rounded-xl hover:bg-gray-50 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>선택 항목 복원</span>
           </button>
-          <button className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700">
-            영구 삭제
+          <button
+            disabled={selectedTasks.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>영구 삭제</span>
           </button>
         </div>
       </div>
 
       {/* Statistics */}
       <div className="grid grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-ui-border">
-          <div className="text-3xl font-bold text-ui-text mb-2">24</div>
-          <div className="text-sm text-ui-textSecondary">삭제된 업무</div>
+        <div className="bg-white rounded-xl p-6 shadow-card border border-ui-border">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center">
+              <Trash2 className="w-6 h-6 text-gray-600" />
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-ui-text mb-1">24</div>
+              <div className="text-sm text-ui-textSecondary">삭제된 업무</div>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-ui-border">
-          <div className="text-3xl font-bold text-orange-600 mb-2">12</div>
-          <div className="text-sm text-ui-textSecondary">7일 이내 삭제 예정</div>
+        <div className="bg-white rounded-xl p-6 shadow-card border border-ui-border">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-orange-600" />
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-orange-600 mb-1">12</div>
+              <div className="text-sm text-ui-textSecondary">7일 이내 삭제 예정</div>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-ui-border">
-          <div className="text-3xl font-bold text-red-600 mb-2">8</div>
-          <div className="text-sm text-ui-textSecondary">30일 후 영구 삭제</div>
+        <div className="bg-white rounded-xl p-6 shadow-card border border-ui-border">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-red-600 mb-1">8</div>
+              <div className="text-sm text-ui-textSecondary">30일 후 영구 삭제</div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg p-4 shadow-sm border border-ui-border">
+      <div className="bg-white rounded-xl p-4 shadow-card border border-ui-border">
         <div className="flex items-center gap-4">
-          <select className="px-4 py-2 text-sm border border-ui-border rounded-lg">
-            <option>전체 부서</option>
-            <option>개발팀</option>
-            <option>디자인팀</option>
-            <option>마케팅팀</option>
-          </select>
-          <select className="px-4 py-2 text-sm border border-ui-border rounded-lg">
-            <option>삭제일 순</option>
-            <option>제목 순</option>
-            <option>부서 순</option>
-          </select>
-          <input
-            type="text"
-            placeholder="검색..."
-            className="flex-1 px-4 py-2 text-sm border border-ui-border rounded-lg"
-          />
-          <button className="px-6 py-2 text-sm bg-ui-primary text-white rounded-lg hover:bg-blue-700">
-            검색
-          </button>
+          <div className="relative">
+            <select className="px-4 py-2 text-sm border border-ui-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ui-primary/30 focus:border-ui-primary appearance-none pr-8">
+              <option>전체 부서</option>
+              <option>개발팀</option>
+              <option>디자인팀</option>
+              <option>마케팅팀</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-ui-textSecondary pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select className="px-4 py-2 text-sm border border-ui-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ui-primary/30 focus:border-ui-primary appearance-none pr-8">
+              <option>삭제일 순</option>
+              <option>제목 순</option>
+              <option>부서 순</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-ui-textSecondary pointer-events-none" />
+          </div>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ui-textSecondary" />
+            <input
+              type="text"
+              placeholder="검색..."
+              className="w-full pl-10 pr-4 py-2 text-sm border border-ui-border rounded-xl focus:outline-none focus:ring-2 focus:ring-ui-primary/30 focus:border-ui-primary"
+            />
+          </div>
         </div>
       </div>
 
       {/* Deleted Tasks Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-ui-border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-card border border-ui-border overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-ui-border">
             <tr>
               <th className="px-6 py-3 text-left">
-                <input type="checkbox" className="rounded" />
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300"
+                  checked={selectedTasks.length === deletedTasks.length}
+                  onChange={toggleSelectAll}
+                />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-ui-textSecondary uppercase">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-ui-textSecondary">
                 업무 제목
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-ui-textSecondary uppercase">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-ui-textSecondary">
                 부서
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-ui-textSecondary uppercase">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-ui-textSecondary">
                 삭제자
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-ui-textSecondary uppercase">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-ui-textSecondary">
                 삭제일
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-ui-textSecondary uppercase">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-ui-textSecondary">
                 원래 마감일
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-ui-textSecondary uppercase">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-ui-textSecondary">
                 액션
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ui-border">
             {deletedTasks.map((task) => (
-              <tr key={task.id} className="hover:bg-gray-50">
+              <tr key={task.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
-                  <input type="checkbox" className="rounded" />
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300"
+                    checked={selectedTasks.includes(task.id)}
+                    onChange={() => toggleSelection(task.id)}
+                  />
                 </td>
                 <td className="px-6 py-4">
                   <span className="text-sm font-medium text-ui-text line-through">
@@ -152,11 +223,13 @@ export default function TrashPage() {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex gap-2">
-                    <button className="text-sm text-ui-primary hover:underline">
-                      복원
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ui-primary bg-blue-50 hover:bg-blue-100 rounded-xl transition-all">
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>복원</span>
                     </button>
-                    <button className="text-sm text-red-600 hover:underline">
-                      영구 삭제
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all">
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>영구 삭제</span>
                     </button>
                   </div>
                 </td>
@@ -167,11 +240,13 @@ export default function TrashPage() {
       </div>
 
       {/* Warning Notice */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5">
         <div className="flex items-start gap-3">
-          <span className="text-yellow-600 text-xl">⚠️</span>
+          <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-5 h-5 text-yellow-600" />
+          </div>
           <div>
-            <h4 className="text-sm font-medium text-yellow-800 mb-1">
+            <h4 className="text-sm font-semibold text-yellow-800 mb-1">
               자동 삭제 안내
             </h4>
             <p className="text-sm text-yellow-700">
