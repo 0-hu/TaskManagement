@@ -9,6 +9,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { name: '대시보드', href: '/dashboard', icon: '🏠' },
+  { name: '마이페이지', href: '/profile', icon: '👤' },
   { name: '내 업무', href: '/my-tasks', icon: '✓' },
   { name: '부서 업무', href: '/department-tasks', icon: '👥' },
   { name: '제출 현황', href: '/submissions', icon: '📄' },
