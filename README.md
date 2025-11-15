@@ -45,28 +45,62 @@ cd TaskManagement
 ./dev.sh start
 ```
 
+**자동으로 수행되는 작업:**
+- 📦 Frontend & Backend 의존성 설치
+- 🗄️ Prisma Client 생성 및 SQLite DB 초기화
+- 🚀 Backend (3001) & Frontend (3000) 서버 시작
+
 완료!
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:3001/api
+- **API Docs**: http://localhost:3001/api/docs
 
 ### 수동 설치 (선택)
 <details>
 <summary>수동으로 설정하려면 클릭</summary>
 
-#### 백엔드 시작
+#### 1. Backend 초기화 및 시작
 ```bash
 cd backend
+
+# 의존성 설치
 npm install
+
+# Prisma Client 생성
 npx prisma generate
+
+# 데이터베이스 초기화 (SQLite)
 npx prisma migrate dev --name init
+# 또는
+npx prisma db push
+
+# 개발 서버 시작
 npm run start:dev
 ```
 
-#### 프론트엔드 시작
+#### 2. Frontend 시작
 ```bash
 cd frontend
+
+# 의존성 설치
 npm install
+
+# .env.local 생성
+echo "NEXT_PUBLIC_API_URL=http://localhost:3001/api" > .env.local
+
+# 개발 서버 시작
 npm run dev
+```
+
+#### 3. 데이터베이스 재설정 (필요시)
+```bash
+cd backend
+
+# DB 파일 삭제
+rm prisma/dev.db
+
+# 재초기화
+npx prisma migrate dev --name init
 ```
 </details>
 

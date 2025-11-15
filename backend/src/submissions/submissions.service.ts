@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { InMemoryDatabase } from '../database/in-memory.database';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { ApproveSubmissionDto } from './dto/approve-submission.dto';
 import { RejectSubmissionDto } from './dto/reject-submission.dto';
@@ -11,56 +11,57 @@ import { QuerySubmissionDto } from './dto/query-submission.dto';
 
 @Injectable()
 export class SubmissionsService {
-  constructor(private db: InMemoryDatabase) {}
+  constructor(private prisma: PrismaService) {}
 
   async create(createSubmissionDto: CreateSubmissionDto, userId: string) {
     const { taskId, comment } = createSubmissionDto;
 
     // Check if task exists
-    const task = this.db.findTaskById(taskId);
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+    });
+
     if (!task) {
       throw new NotFoundException(`Task with ID ${taskId} not found`);
     }
 
     // Check if user is assigned to the task
-    const assignments = this.db.findTaskAssignments(taskId);
-    const isAssigned = assignments.some((a) => a.userId === userId);
+    const assignment = await this.prisma.taskAssignment.findFirst({
+      where: {
+        taskId,
+        userId,
+      },
+    });
 
-    if (!isAssigned) {
+    if (!assignment) {
       throw new BadRequestException(
         'You must be assigned to this task to submit it',
       );
     }
 
     // Create submission
-    const submission = this.db.createTaskSubmission({
-      taskId,
-      submittedBy: userId,
-      comment,
-      status: 'SUBMITTED',
+    const submission = await this.prisma.taskSubmission.create({
+      data: {
+        taskId,
+        submittedBy: userId,
+        comment,
+        status: 'SUBMITTED',
+      },
+      include: {
+        task: {
+          include: {
+            createdBy: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        submittedByUser: {
+          select: { id: true, name: true, email: true, avatar: true },
+        },
+      },
     });
 
-    // Populate related data
-    const submittedByUser = this.db.findUserById(userId);
-    const createdBy = this.db.findUserById(task.createdById);
-
-    return {
-      ...submission,
-      task: {
-        ...task,
-        createdBy: createdBy
-          ? { id: createdBy.id, name: createdBy.name, email: createdBy.email }
-          : null,
-      },
-      submittedByUser: submittedByUser
-        ? {
-            id: submittedByUser.id,
-            name: submittedByUser.name,
-            email: submittedByUser.email,
-            avatar: submittedByUser.avatar,
-          }
-        : null,
-    };
+    return submission;
   }
 
   async findAll(queryDto: QuerySubmissionDto) {
@@ -72,66 +73,39 @@ export class SubmissionsService {
       limit = 20,
     } = queryDto;
 
-    let submissions = this.db.findAllTaskSubmissions();
-
-    // Apply filters
-    if (status) {
-      submissions = submissions.filter((s) => s.status === status);
-    }
-    if (taskId) {
-      submissions = submissions.filter((s) => s.taskId === taskId);
-    }
-    if (submittedBy) {
-      submissions = submissions.filter((s) => s.submittedBy === submittedBy);
-    }
-
-    // Sort by submittedAt desc
-    submissions.sort(
-      (a, b) => b.submittedAt.getTime() - a.submittedAt.getTime(),
-    );
-
-    // Pagination
-    const total = submissions.length;
     const skip = (page - 1) * limit;
-    const paginatedSubmissions = submissions.slice(skip, skip + limit);
 
-    // Populate related data
-    const data = paginatedSubmissions.map((submission) => {
-      const task = this.db.findTaskById(submission.taskId);
-      const submittedByUser = this.db.findUserById(submission.submittedBy);
-      const createdBy = task ? this.db.findUserById(task.createdById) : null;
-      const department = task?.departmentId
-        ? this.db.findDepartmentById(task.departmentId)
-        : null;
+    const where: any = {};
 
-      return {
-        ...submission,
-        task: task
-          ? {
-              ...task,
-              createdBy: createdBy
-                ? {
-                    id: createdBy.id,
-                    name: createdBy.name,
-                    email: createdBy.email,
-                  }
-                : null,
-              department,
-            }
-          : null,
-        submittedByUser: submittedByUser
-          ? {
-              id: submittedByUser.id,
-              name: submittedByUser.name,
-              email: submittedByUser.email,
-              avatar: submittedByUser.avatar,
-            }
-          : null,
-      };
-    });
+    if (status) where.status = status;
+    if (taskId) where.taskId = taskId;
+    if (submittedBy) where.submittedBy = submittedBy;
+
+    const [submissions, total] = await Promise.all([
+      this.prisma.taskSubmission.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { submittedAt: 'desc' },
+        include: {
+          task: {
+            include: {
+              createdBy: {
+                select: { id: true, name: true, email: true },
+              },
+              department: true,
+            },
+          },
+          submittedByUser: {
+            select: { id: true, name: true, email: true, avatar: true },
+          },
+        },
+      }),
+      this.prisma.taskSubmission.count({ where }),
+    ]);
 
     return {
-      data,
+      data: submissions,
       meta: {
         total,
         page,
@@ -142,40 +116,29 @@ export class SubmissionsService {
   }
 
   async findOne(id: string) {
-    const submission = this.db.findTaskSubmissionById(id);
+    const submission = await this.prisma.taskSubmission.findUnique({
+      where: { id },
+      include: {
+        task: {
+          include: {
+            createdBy: {
+              select: { id: true, name: true, email: true },
+            },
+            department: true,
+            attachments: true,
+          },
+        },
+        submittedByUser: {
+          select: { id: true, name: true, email: true, avatar: true },
+        },
+      },
+    });
+
     if (!submission) {
       throw new NotFoundException(`Submission with ID ${id} not found`);
     }
 
-    // Populate related data
-    const task = this.db.findTaskById(submission.taskId);
-    const submittedByUser = this.db.findUserById(submission.submittedBy);
-    const createdBy = task ? this.db.findUserById(task.createdById) : null;
-    const department = task?.departmentId
-      ? this.db.findDepartmentById(task.departmentId)
-      : null;
-
-    return {
-      ...submission,
-      task: task
-        ? {
-            ...task,
-            createdBy: createdBy
-              ? { id: createdBy.id, name: createdBy.name, email: createdBy.email }
-              : null,
-            department,
-            attachments: [], // Not implemented in in-memory storage
-          }
-        : null,
-      submittedByUser: submittedByUser
-        ? {
-            id: submittedByUser.id,
-            name: submittedByUser.name,
-            email: submittedByUser.email,
-            avatar: submittedByUser.avatar,
-          }
-        : null,
-    };
+    return submission;
   }
 
   async approve(id: string, approveDto: ApproveSubmissionDto) {
@@ -185,46 +148,37 @@ export class SubmissionsService {
       throw new BadRequestException('Submission is already approved');
     }
 
-    const updatedSubmission = this.db.updateTaskSubmission(id, {
-      status: 'APPROVED',
-      feedback: approveDto.feedback,
-      reviewedAt: new Date(),
+    const updatedSubmission = await this.prisma.taskSubmission.update({
+      where: { id },
+      data: {
+        status: 'APPROVED',
+        feedback: approveDto.feedback,
+        reviewedAt: new Date(),
+      },
+      include: {
+        task: {
+          include: {
+            createdBy: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        submittedByUser: {
+          select: { id: true, name: true, email: true, avatar: true },
+        },
+      },
     });
-
-    if (!updatedSubmission) {
-      throw new NotFoundException(`Submission with ID ${id} not found`);
-    }
 
     // Update task status to COMPLETED
-    this.db.updateTask(submission.taskId, {
-      status: 'COMPLETED',
-      progress: 100,
+    await this.prisma.task.update({
+      where: { id: submission.taskId },
+      data: {
+        status: 'COMPLETED',
+        progress: 100,
+      },
     });
 
-    // Populate related data
-    const task = this.db.findTaskById(updatedSubmission.taskId);
-    const submittedByUser = this.db.findUserById(updatedSubmission.submittedBy);
-    const createdBy = task ? this.db.findUserById(task.createdById) : null;
-
-    return {
-      ...updatedSubmission,
-      task: task
-        ? {
-            ...task,
-            createdBy: createdBy
-              ? { id: createdBy.id, name: createdBy.name, email: createdBy.email }
-              : null,
-          }
-        : null,
-      submittedByUser: submittedByUser
-        ? {
-            id: submittedByUser.id,
-            name: submittedByUser.name,
-            email: submittedByUser.email,
-            avatar: submittedByUser.avatar,
-          }
-        : null,
-    };
+    return updatedSubmission;
   }
 
   async reject(id: string, rejectDto: RejectSubmissionDto) {
@@ -234,55 +188,43 @@ export class SubmissionsService {
       throw new BadRequestException('Submission is already rejected');
     }
 
-    const updatedSubmission = this.db.updateTaskSubmission(id, {
-      status: 'REJECTED',
-      feedback: rejectDto.feedback,
-      reviewedAt: new Date(),
+    const updatedSubmission = await this.prisma.taskSubmission.update({
+      where: { id },
+      data: {
+        status: 'REJECTED',
+        feedback: rejectDto.feedback,
+        reviewedAt: new Date(),
+      },
+      include: {
+        task: {
+          include: {
+            createdBy: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        submittedByUser: {
+          select: { id: true, name: true, email: true, avatar: true },
+        },
+      },
     });
-
-    if (!updatedSubmission) {
-      throw new NotFoundException(`Submission with ID ${id} not found`);
-    }
 
     // Update task status back to IN_PROGRESS
-    this.db.updateTask(submission.taskId, {
-      status: 'IN_PROGRESS',
+    await this.prisma.task.update({
+      where: { id: submission.taskId },
+      data: {
+        status: 'IN_PROGRESS',
+      },
     });
 
-    // Populate related data
-    const task = this.db.findTaskById(updatedSubmission.taskId);
-    const submittedByUser = this.db.findUserById(updatedSubmission.submittedBy);
-    const createdBy = task ? this.db.findUserById(task.createdById) : null;
-
-    return {
-      ...updatedSubmission,
-      task: task
-        ? {
-            ...task,
-            createdBy: createdBy
-              ? { id: createdBy.id, name: createdBy.name, email: createdBy.email }
-              : null,
-          }
-        : null,
-      submittedByUser: submittedByUser
-        ? {
-            id: submittedByUser.id,
-            name: submittedByUser.name,
-            email: submittedByUser.email,
-            avatar: submittedByUser.avatar,
-          }
-        : null,
-    };
+    return updatedSubmission;
   }
 
   async remove(id: string) {
-    const submission = this.db.findTaskSubmissionById(id);
-    if (!submission) {
-      throw new NotFoundException(`Submission with ID ${id} not found`);
-    }
+    await this.findOne(id);
 
-    // Note: InMemoryDatabase doesn't have delete method for submissions
-    // We would need to add it, but for now just return success
+    await this.prisma.taskSubmission.delete({ where: { id } });
+
     return { message: 'Submission deleted successfully' };
   }
 }

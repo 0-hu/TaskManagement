@@ -1,0 +1,180 @@
+// This is your Prisma schema file for LOCAL DEVELOPMENT (SQLite)
+// For production PostgreSQL schema, see schema.production.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(USER)
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdTasks       Task[]               @relation("TaskCreator")
+  assignments        TaskAssignment[]
+  departmentMembers  DepartmentMember[]
+  taskSubmissions    TaskSubmission[]
+  taskComments       TaskComment[]
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members DepartmentMember[]
+  tasks   Task[]
+}
+
+model DepartmentMember {
+  id           String         @id @default(uuid())
+  userId       String
+  departmentId String
+  role         DepartmentRole @default(MEMBER)
+  joinedAt     DateTime       @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, departmentId])
+  @@index([userId])
+  @@index([departmentId])
+}
+
+model Task {
+  id           String     @id @default(uuid())
+  title        String
+  description  String?
+  status       TaskStatus @default(TODO)
+  priority     Priority   @default(MEDIUM)
+  progress     Int        @default(0)
+  type         TaskType   @default(PERSONAL)
+  startDate    DateTime?
+  dueDate      DateTime?
+  createdById  String
+  departmentId String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  createdBy   User             @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  department  Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  assignments TaskAssignment[]
+  submissions TaskSubmission[]
+  comments    TaskComment[]
+  attachments TaskAttachment[]
+
+  @@index([createdById])
+  @@index([departmentId])
+  @@index([status])
+  @@index([priority])
+}
+
+model TaskAssignment {
+  id     String @id @default(uuid())
+  taskId String
+  userId String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@index([userId])
+  @@index([taskId])
+}
+
+model TaskSubmission {
+  id          String           @id @default(uuid())
+  taskId      String
+  submittedBy String
+  comment     String?
+  status      SubmissionStatus @default(PENDING)
+  feedback    String?
+  submittedAt DateTime         @default(now())
+  reviewedAt  DateTime?
+
+  task            Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  submittedByUser User @relation(fields: [submittedBy], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([submittedBy])
+  @@index([status])
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+model TaskAttachment {
+  id        String   @id @default(uuid())
+  taskId    String
+  filename  String
+  url       String
+  size      Int
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+// Enums
+enum Role {
+  ADMIN
+  MANAGER
+  USER
+}
+
+enum DepartmentRole {
+  LEADER
+  MEMBER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskType {
+  PERSONAL
+  DEPARTMENT
+}
+
+enum SubmissionStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+}

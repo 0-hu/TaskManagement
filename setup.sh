@@ -54,6 +54,30 @@ else
     print_success "Backend dependencies already installed"
 fi
 
+echo ""
+print_info "Initializing Prisma..."
+
+# Prisma Client 생성
+npx prisma generate
+if [ $? -ne 0 ]; then
+    print_error "Failed to generate Prisma Client"
+    exit 1
+fi
+print_success "Prisma Client generated"
+
+# 데이터베이스 초기화
+if [ ! -f "prisma/dev.db" ]; then
+    print_info "Creating database..."
+    npx prisma migrate dev --name init
+    if [ $? -ne 0 ]; then
+        print_info "Migration failed. Trying db push..."
+        npx prisma db push
+    fi
+    print_success "Database created"
+else
+    print_success "Database already exists"
+fi
+
 cd ..
 echo ""
 
