@@ -51,16 +51,51 @@ start_backend() {
         fi
     fi
 
-    print_info "Starting backend..."
+    print_info "Preparing backend..."
     cd "$BACKEND_DIR"
+
+    # Prisma 초기화 확인
+    if [ ! -d "node_modules/.prisma/client" ]; then
+        print_info "Prisma Client not found. Generating..."
+        npx prisma generate >> "$BACKEND_LOG" 2>&1
+        if [ $? -ne 0 ]; then
+            print_error "Failed to generate Prisma Client. Check logs: $BACKEND_LOG"
+            return 1
+        fi
+        print_success "Prisma Client generated"
+    fi
+
+    # 데이터베이스 초기화 확인
+    if [ ! -f "prisma/dev.db" ]; then
+        print_info "Database not found. Running migrations..."
+        npx prisma migrate dev --name init >> "$BACKEND_LOG" 2>&1
+        if [ $? -ne 0 ]; then
+            print_warning "Migration failed. Trying db push..."
+            npx prisma db push >> "$BACKEND_LOG" 2>&1
+        fi
+        print_success "Database initialized"
+    fi
+
+    print_info "Starting backend server..."
 
     # Backend 시작 (백그라운드)
     nohup npm run start:dev > "$BACKEND_LOG" 2>&1 &
     BACKEND_PROCESS=$!
     echo "$BACKEND_PROCESS" > "$BACKEND_PID"
 
-    print_success "Backend started (PID: $BACKEND_PROCESS)"
-    print_info "Backend logs: $BACKEND_LOG"
+    # 서버 시작 대기
+    print_info "Waiting for backend to start..."
+    for i in {1..30}; do
+        if curl -s http://localhost:3001/api > /dev/null 2>&1; then
+            print_success "Backend started successfully (PID: $BACKEND_PROCESS)"
+            print_info "Backend logs: $BACKEND_LOG"
+            return 0
+        fi
+        sleep 1
+    done
+
+    print_warning "Backend started but not responding yet (PID: $BACKEND_PROCESS)"
+    print_info "Check logs: tail -f $BACKEND_LOG"
 }
 
 # Frontend 시작

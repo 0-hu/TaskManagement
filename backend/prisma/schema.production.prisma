@@ -1,12 +1,12 @@
-// This is your Prisma schema file for LOCAL DEVELOPMENT (SQLite)
-// For production PostgreSQL schema, see schema.production.prisma
+// This is your Prisma schema file for PRODUCTION (PostgreSQL - Railway)
+// For local development SQLite schema, see schema.prisma
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
