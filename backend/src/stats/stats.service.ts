@@ -1,21 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { InMemoryDatabase } from '../database/in-memory.database';
 
 @Injectable()
 export class StatsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private db: InMemoryDatabase) {}
 
   async getDashboardStats(userId?: string) {
-    const where = userId ? { assignments: { some: { userId } } } : {};
+    let tasks = this.db.findAllTasks();
 
-    const [totalTasks, todoTasks, inProgressTasks, completedTasks, onHoldTasks] =
-      await Promise.all([
-        this.prisma.task.count({ where }),
-        this.prisma.task.count({ where: { ...where, status: 'TODO' } }),
-        this.prisma.task.count({ where: { ...where, status: 'IN_PROGRESS' } }),
-        this.prisma.task.count({ where: { ...where, status: 'COMPLETED' } }),
-        this.prisma.task.count({ where: { ...where, status: 'ON_HOLD' } }),
-      ]);
+    if (userId) {
+      // Filter tasks where user is assigned
+      const userAssignments = this.db
+        .findAllTasks()
+        .map((task) => ({
+          taskId: task.id,
+          assignments: this.db.findTaskAssignments(task.id),
+        }))
+        .filter((item) => item.assignments.some((a) => a.userId === userId))
+        .map((item) => item.taskId);
+
+      tasks = tasks.filter((t) => userAssignments.includes(t.id));
+    }
+
+    const totalTasks = tasks.length;
+    const todoTasks = tasks.filter((t) => t.status === 'TODO').length;
+    const inProgressTasks = tasks.filter((t) => t.status === 'IN_PROGRESS')
+      .length;
+    const completedTasks = tasks.filter((t) => t.status === 'COMPLETED').length;
+    const onHoldTasks = tasks.filter((t) => t.status === 'ON_HOLD').length;
 
     const completionRate =
       totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -31,60 +43,57 @@ export class StatsService {
   }
 
   async getTaskStats() {
-    const [
-      statusDistribution,
-      priorityDistribution,
-      typeDistribution,
-      averageProgress,
-    ] = await Promise.all([
-      this.prisma.task.groupBy({
-        by: ['status'],
-        _count: { status: true },
-      }),
-      this.prisma.task.groupBy({
-        by: ['priority'],
-        _count: { priority: true },
-      }),
-      this.prisma.task.groupBy({
-        by: ['type'],
-        _count: { type: true },
-      }),
-      this.prisma.task.aggregate({
-        _avg: { progress: true },
-      }),
-    ]);
+    const tasks = this.db.findAllTasks();
+
+    // Group by status
+    const statusMap: Record<string, number> = {};
+    const priorityMap: Record<string, number> = {};
+    const typeMap: Record<string, number> = {};
+    let totalProgress = 0;
+
+    tasks.forEach((task) => {
+      statusMap[task.status] = (statusMap[task.status] || 0) + 1;
+      priorityMap[task.priority] = (priorityMap[task.priority] || 0) + 1;
+      typeMap[task.type] = (typeMap[task.type] || 0) + 1;
+      totalProgress += task.progress;
+    });
+
+    const averageProgress =
+      tasks.length > 0 ? Math.round(totalProgress / tasks.length) : 0;
 
     return {
-      byStatus: statusDistribution.map((item: any) => ({
-        status: item.status,
-        count: item._count.status,
+      byStatus: Object.entries(statusMap).map(([status, count]) => ({
+        status,
+        count,
       })),
-      byPriority: priorityDistribution.map((item: any) => ({
-        priority: item.priority,
-        count: item._count.priority,
+      byPriority: Object.entries(priorityMap).map(([priority, count]) => ({
+        priority,
+        count,
       })),
-      byType: typeDistribution.map((item: any) => ({
-        type: item.type,
-        count: item._count.type,
+      byType: Object.entries(typeMap).map(([type, count]) => ({
+        type,
+        count,
       })),
-      averageProgress: Math.round(averageProgress._avg.progress || 0),
+      averageProgress,
     };
   }
 
   async getSubmissionStats() {
-    const [
-      totalSubmissions,
-      pendingSubmissions,
-      submittedSubmissions,
-      approvedSubmissions,
-      rejectedSubmissions,
-    ] = await Promise.all([
-      this.prisma.taskSubmission.count(),
-      this.prisma.taskSubmission.count({ where: { status: 'PENDING' } }),
-      this.prisma.taskSubmission.count({ where: { status: 'SUBMITTED' } }),
-      this.prisma.taskSubmission.count({ where: { status: 'APPROVED' } }),
-      this.prisma.taskSubmission.count({ where: { status: 'REJECTED' } }),
-    ]);
+    const submissions = this.db.findAllTaskSubmissions();
+
+    const totalSubmissions = submissions.length;
+    const pendingSubmissions = submissions.filter(
+      (s) => s.status === 'PENDING',
+    ).length;
+    const submittedSubmissions = submissions.filter(
+      (s) => s.status === 'SUBMITTED',
+    ).length;
+    const approvedSubmissions = submissions.filter(
+      (s) => s.status === 'APPROVED',
+    ).length;
+    const rejectedSubmissions = submissions.filter(
+      (s) => s.status === 'REJECTED',
+    ).length;
 
     const approvalRate =
       totalSubmissions > 0
@@ -102,18 +111,32 @@ export class StatsService {
   }
 
   async getUserStats(userId: string) {
-    const [assignedTasks, createdTasks, submissions, completedTasks] =
-      await Promise.all([
-        this.prisma.taskAssignment.count({ where: { userId } }),
-        this.prisma.task.count({ where: { createdById: userId } }),
-        this.prisma.taskSubmission.count({ where: { submittedBy: userId } }),
-        this.prisma.task.count({
-          where: {
-            assignments: { some: { userId } },
-            status: 'COMPLETED',
-          },
-        }),
-      ]);
+    const tasks = this.db.findAllTasks();
+    const submissions = this.db.findAllTaskSubmissions();
+
+    // Count assigned tasks
+    const assignedTaskIds = tasks
+      .map((task) => ({
+        taskId: task.id,
+        assignments: this.db.findTaskAssignments(task.id),
+      }))
+      .filter((item) => item.assignments.some((a) => a.userId === userId))
+      .map((item) => item.taskId);
+
+    const assignedTasks = assignedTaskIds.length;
+
+    // Count created tasks
+    const createdTasks = tasks.filter((t) => t.createdById === userId).length;
+
+    // Count submissions
+    const userSubmissions = submissions.filter(
+      (s) => s.submittedBy === userId,
+    ).length;
+
+    // Count completed tasks
+    const completedTasks = tasks.filter(
+      (t) => assignedTaskIds.includes(t.id) && t.status === 'COMPLETED',
+    ).length;
 
     const completionRate =
       assignedTasks > 0
@@ -123,25 +146,21 @@ export class StatsService {
     return {
       assignedTasks,
       createdTasks,
-      submissions,
+      submissions: userSubmissions,
       completedTasks,
       completionRate,
     };
   }
 
   async getDepartmentStats(departmentId: string) {
-    const [totalTasks, completedTasks, members, avgProgress] =
-      await Promise.all([
-        this.prisma.task.count({ where: { departmentId } }),
-        this.prisma.task.count({
-          where: { departmentId, status: 'COMPLETED' },
-        }),
-        this.prisma.departmentMember.count({ where: { departmentId } }),
-        this.prisma.task.aggregate({
-          where: { departmentId },
-          _avg: { progress: true },
-        }),
-      ]);
+    const tasks = this.db.findTasksByDepartmentId(departmentId);
+    const members = this.db.findDepartmentMembers(departmentId);
+
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter((t) => t.status === 'COMPLETED').length;
+    const totalProgress = tasks.reduce((sum, t) => sum + t.progress, 0);
+    const averageProgress =
+      tasks.length > 0 ? Math.round(totalProgress / tasks.length) : 0;
 
     const completionRate =
       totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -149,9 +168,9 @@ export class StatsService {
     return {
       totalTasks,
       completedTasks,
-      members,
+      members: members.length,
       completionRate,
-      averageProgress: Math.round(avgProgress._avg.progress || 0),
+      averageProgress,
     };
   }
 
@@ -159,21 +178,16 @@ export class StatsService {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const tasks = await this.prisma.task.findMany({
-      where: {
-        createdAt: {
-          gte: sixMonthsAgo,
-        },
-      },
-      select: {
-        createdAt: true,
-        status: true,
-      },
-    });
+    const tasks = this.db
+      .findAllTasks()
+      .filter((t) => t.createdAt >= sixMonthsAgo);
 
     // Group by month
-    type MonthlyStats = Record<string, { total: number; completed: number; inProgress: number; todo: number }>;
-    const monthlyData = tasks.reduce((acc: MonthlyStats, task: any) => {
+    type MonthlyStats = Record<
+      string,
+      { total: number; completed: number; inProgress: number; todo: number }
+    >;
+    const monthlyData = tasks.reduce((acc: MonthlyStats, task) => {
       const month = task.createdAt.toISOString().substring(0, 7); // YYYY-MM
       if (!acc[month]) {
         acc[month] = { total: 0, completed: 0, inProgress: 0, todo: 0 };
@@ -186,7 +200,7 @@ export class StatsService {
     }, {} as MonthlyStats);
 
     return Object.entries(monthlyData)
-      .map(([month, data]: [string, any]) => ({
+      .map(([month, data]) => ({
         month,
         ...data,
       }))
@@ -194,38 +208,27 @@ export class StatsService {
   }
 
   async getDepartmentComparison() {
-    const departments = await this.prisma.department.findMany({
-      include: {
-        _count: {
-          select: { tasks: true, members: true },
-        },
-      },
+    const departments = this.db.findAllDepartments();
+
+    const departmentStats = departments.map((dept) => {
+      const tasks = this.db.findTasksByDepartmentId(dept.id);
+      const members = this.db.findDepartmentMembers(dept.id);
+      const completedTasks = tasks.filter((t) => t.status === 'COMPLETED')
+        .length;
+      const totalTasks = tasks.length;
+
+      const completionRate =
+        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+      return {
+        id: dept.id,
+        name: dept.name,
+        totalTasks,
+        completedTasks,
+        members: members.length,
+        completionRate,
+      };
     });
-
-    const departmentStats = await Promise.all(
-      departments.map(async (dept: any) => {
-        const completedTasks = await this.prisma.task.count({
-          where: {
-            departmentId: dept.id,
-            status: 'COMPLETED',
-          },
-        });
-
-        const completionRate =
-          dept._count.tasks > 0
-            ? Math.round((completedTasks / dept._count.tasks) * 100)
-            : 0;
-
-        return {
-          id: dept.id,
-          name: dept.name,
-          totalTasks: dept._count.tasks,
-          completedTasks,
-          members: dept._count.members,
-          completionRate,
-        };
-      }),
-    );
 
     return departmentStats;
   }

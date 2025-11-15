@@ -51,32 +51,8 @@ start_backend() {
         fi
     fi
 
-    print_info "Preparing backend..."
-    cd "$BACKEND_DIR"
-
-    # Prisma 초기화 확인
-    if [ ! -d "node_modules/.prisma/client" ]; then
-        print_info "Prisma Client not found. Generating..."
-        npx prisma generate >> "$BACKEND_LOG" 2>&1
-        if [ $? -ne 0 ]; then
-            print_error "Failed to generate Prisma Client. Check logs: $BACKEND_LOG"
-            return 1
-        fi
-        print_success "Prisma Client generated"
-    fi
-
-    # 데이터베이스 초기화 확인
-    if [ ! -f "prisma/dev.db" ]; then
-        print_info "Database not found. Running migrations..."
-        npx prisma migrate dev --name init >> "$BACKEND_LOG" 2>&1
-        if [ $? -ne 0 ]; then
-            print_warning "Migration failed. Trying db push..."
-            npx prisma db push >> "$BACKEND_LOG" 2>&1
-        fi
-        print_success "Database initialized"
-    fi
-
     print_info "Starting backend server..."
+    cd "$BACKEND_DIR"
 
     # Backend 시작 (백그라운드)
     nohup npm run start:dev > "$BACKEND_LOG" 2>&1 &

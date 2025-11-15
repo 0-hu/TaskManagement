@@ -3,212 +3,153 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 
+export interface Department {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface DepartmentMember {
+  id: string;
+  userId: string;
+  departmentId: string;
+  role: 'LEADER' | 'MEMBER';
+  joinedAt: Date;
+}
+
 @Injectable()
 export class DepartmentsService {
-  constructor(private prisma: PrismaService) {}
+  private departments: Map<string, Department> = new Map();
+  private members: Map<string, DepartmentMember> = new Map();
+  private idCounter = 1;
 
   async create(createDepartmentDto: CreateDepartmentDto) {
-    const department = await this.prisma.department.create({
-      data: createDepartmentDto,
-      include: {
-        members: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true, avatar: true },
-            },
-          },
-        },
-        _count: {
-          select: { tasks: true, members: true },
-        },
-      },
-    });
+    const department: Department = {
+      id: `dept-${this.idCounter++}`,
+      ...createDepartmentDto,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
+    this.departments.set(department.id, department);
     return department;
   }
 
   async findAll() {
-    const departments = await this.prisma.department.findMany({
-      include: {
-        members: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true, avatar: true },
-            },
-          },
-        },
-        _count: {
-          select: { tasks: true, members: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return departments;
+    return Array.from(this.departments.values());
   }
 
   async findOne(id: string) {
-    const department = await this.prisma.department.findUnique({
-      where: { id },
-      include: {
-        members: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true, avatar: true },
-            },
-          },
-        },
-        tasks: {
-          include: {
-            createdBy: {
-              select: { id: true, name: true, email: true },
-            },
-            assignments: {
-              include: {
-                user: {
-                  select: { id: true, name: true, email: true, avatar: true },
-                },
-              },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 20,
-        },
-        _count: {
-          select: { tasks: true, members: true },
-        },
-      },
-    });
-
+    const department = this.departments.get(id);
     if (!department) {
       throw new NotFoundException(`Department with ID ${id} not found`);
     }
 
-    return department;
+    // Get members for this department
+    const departmentMembers = Array.from(this.members.values()).filter(
+      (m) => m.departmentId === id,
+    );
+
+    return {
+      ...department,
+      members: departmentMembers,
+    };
   }
 
   async update(id: string, updateDepartmentDto: UpdateDepartmentDto) {
-    await this.findOne(id); // Check if exists
+    const department = await this.findOne(id);
 
-    const department = await this.prisma.department.update({
-      where: { id },
-      data: updateDepartmentDto,
-      include: {
-        members: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true, avatar: true },
-            },
-          },
-        },
-        _count: {
-          select: { tasks: true, members: true },
-        },
-      },
-    });
+    const updated: Department = {
+      ...department,
+      ...updateDepartmentDto,
+      updatedAt: new Date(),
+    };
 
-    return department;
+    this.departments.set(id, updated);
+    return updated;
   }
 
   async remove(id: string) {
-    await this.findOne(id); // Check if exists
+    const department = this.departments.get(id);
+    if (!department) {
+      throw new NotFoundException(`Department with ID ${id} not found`);
+    }
 
-    await this.prisma.department.delete({ where: { id } });
+    // Remove all members
+    Array.from(this.members.values())
+      .filter((m) => m.departmentId === id)
+      .forEach((m) => this.members.delete(m.id));
 
+    this.departments.delete(id);
     return { message: 'Department deleted successfully' };
   }
 
-  async addMember(departmentId: string, addMemberDto: AddMemberDto) {
-    await this.findOne(departmentId); // Check if department exists
+  async addMember(id: string, addMemberDto: AddMemberDto) {
+    const department = await this.findOne(id);
 
-    // Check if user exists
-    const user = await this.prisma.user.findUnique({
-      where: { id: addMemberDto.userId },
-    });
+    // Check if member already exists
+    const existing = Array.from(this.members.values()).find(
+      (m) => m.userId === addMemberDto.userId && m.departmentId === id,
+    );
 
-    if (!user) {
-      throw new NotFoundException(
-        `User with ID ${addMemberDto.userId} not found`,
-      );
-    }
-
-    // Check if user is already a member
-    const existingMember = await this.prisma.departmentMember.findUnique({
-      where: {
-        userId_departmentId: {
-          userId: addMemberDto.userId,
-          departmentId,
-        },
-      },
-    });
-
-    if (existingMember) {
+    if (existing) {
       throw new ConflictException('User is already a member of this department');
     }
 
-    const member = await this.prisma.departmentMember.create({
-      data: {
-        userId: addMemberDto.userId,
-        departmentId,
-        role: addMemberDto.role || 'MEMBER',
-      },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, avatar: true },
-        },
-        department: true,
-      },
-    });
+    const member: DepartmentMember = {
+      id: `member-${Date.now()}`,
+      userId: addMemberDto.userId,
+      departmentId: id,
+      role: addMemberDto.role || 'MEMBER',
+      joinedAt: new Date(),
+    };
 
+    this.members.set(member.id, member);
     return member;
   }
 
   async removeMember(departmentId: string, userId: string) {
-    await this.findOne(departmentId); // Check if department exists
-
-    const member = await this.prisma.departmentMember.findUnique({
-      where: {
-        userId_departmentId: {
-          userId,
-          departmentId,
-        },
-      },
-    });
+    const member = Array.from(this.members.values()).find(
+      (m) => m.userId === userId && m.departmentId === departmentId,
+    );
 
     if (!member) {
-      throw new NotFoundException('User is not a member of this department');
+      throw new NotFoundException('Member not found in this department');
     }
 
-    await this.prisma.departmentMember.delete({
-      where: {
-        userId_departmentId: {
-          userId,
-          departmentId,
-        },
-      },
-    });
-
+    this.members.delete(member.id);
     return { message: 'Member removed successfully' };
   }
 
+  async updateMemberRole(
+    departmentId: string,
+    userId: string,
+    role: 'LEADER' | 'MEMBER',
+  ) {
+    const member = Array.from(this.members.values()).find(
+      (m) => m.userId === userId && m.departmentId === departmentId,
+    );
+
+    if (!member) {
+      throw new NotFoundException('Member not found in this department');
+    }
+
+    const updated = { ...member, role };
+    this.members.set(member.id, updated);
+    return updated;
+  }
+
   async getMembers(departmentId: string) {
-    await this.findOne(departmentId); // Check if exists
+    await this.findOne(departmentId); // Check if department exists
 
-    const members = await this.prisma.departmentMember.findMany({
-      where: { departmentId },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, avatar: true, role: true },
-        },
-      },
-      orderBy: { joinedAt: 'asc' },
-    });
-
-    return members;
+    return Array.from(this.members.values()).filter(
+      (m) => m.departmentId === departmentId,
+    );
   }
 }
