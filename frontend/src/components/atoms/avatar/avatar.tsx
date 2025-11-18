@@ -1,53 +1,44 @@
-interface AvatarProps {
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import { cn } from "@/lib/cn";
+
+type AvatarProps = {
   name: string;
-  src?: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  imageUrl?: string;
+  size?: "sm" | "md";
   className?: string;
-}
-
-const sizeClasses = {
-  xs: 'w-6 h-6 text-xs',
-  sm: 'w-8 h-8 text-sm',
-  md: 'w-10 h-10 text-base',
-  lg: 'w-12 h-12 text-lg',
-  xl: 'w-16 h-16 text-xl',
 };
 
-// Generate consistent color based on name
-const getColorFromName = (name: string): string => {
-  const colors = [
-    'bg-blue-500',
-    'bg-green-500',
-    'bg-yellow-500',
-    'bg-red-500',
-    'bg-purple-500',
-    'bg-pink-500',
-    'bg-indigo-500',
-    'bg-teal-500',
-  ];
-
-  const charCode = name.charCodeAt(0) + name.charCodeAt(name.length - 1);
-  return colors[charCode % colors.length];
+const sizeMap: Record<Required<AvatarProps>["size"], { size: string; pixels: number }> = {
+  sm: { size: "h-8 w-8 text-sm", pixels: 32 },
+  md: { size: "h-10 w-10 text-base", pixels: 40 }
 };
 
-export function Avatar({ name, src, size = 'md', className = '' }: AvatarProps) {
+export function Avatar({ name, imageUrl, size = "md", className }: AvatarProps) {
+  const [imageError, setImageError] = useState(false);
+
   const initials = name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
-  const colorClass = getColorFromName(name);
-  const sizeClass = sizeClasses[size];
+  const sizeConfig = sizeMap[size];
 
-  if (src) {
+  if (imageUrl && !imageError) {
     return (
-      <div className={`${sizeClass} rounded-full overflow-hidden ${className}`}>
-        <img
-          src={src}
+      <div className={cn("relative rounded-full overflow-hidden border border-neutral-200", sizeConfig.size, className)}>
+        <Image
+          src={imageUrl}
           alt={name}
-          className="w-full h-full object-cover"
+          width={sizeConfig.pixels}
+          height={sizeConfig.pixels}
+          onError={() => setImageError(true)}
+          className="object-cover"
+          unoptimized
         />
       </div>
     );
@@ -55,7 +46,11 @@ export function Avatar({ name, src, size = 'md', className = '' }: AvatarProps) 
 
   return (
     <div
-      className={`${sizeClass} ${colorClass} rounded-full flex items-center justify-center text-white font-semibold ${className}`}
+      className={cn(
+        "flex items-center justify-center rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200 font-semibold",
+        sizeConfig.size,
+        className
+      )}
     >
       {initials}
     </div>

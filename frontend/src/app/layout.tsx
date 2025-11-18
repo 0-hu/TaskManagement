@@ -1,19 +1,26 @@
-import type { Metadata } from 'next'
-import '../styles/globals.css'
+import type { Metadata } from "next";
+import "./globals.css";
+import { Box } from "@/components/atoms/box/box";
+import { Sidebar } from "@/components/organisms/sidebar/sidebar";
+import { Header } from "@/components/organisms/header/header";
 
 export const metadata: Metadata = {
-  title: '업무일감 관리',
-  description: '개인 및 부서 업무를 효율적으로 관리하는 시스템',
-}
+  title: "업무 관리 시스템",
+  description: "Business workspace dashboard"
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body className="font-sans antialiased">{children}</body>
+      <body>
+        <Box className="flex min-h-screen bg-neutral-50">
+          <Sidebar />
+          <Box className="flex flex-1 flex-col">
+            <Header />
+            <Box className="flex-1 p-6">{children}</Box>
+          </Box>
+        </Box>
+      </body>
     </html>
-  )
+  );
 }

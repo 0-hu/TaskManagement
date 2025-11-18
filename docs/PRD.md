@@ -130,30 +130,30 @@
 
 ## 4. 시스템 아키텍처
 
-### 4.1 기술 스택 (확정)
+### 4.1 기술 스택 (현재 구현)
 #### Frontend
-- **Framework**: Next.js 14 (App Router, SSR First)
-- **Language**: TypeScript (strict mode, no any types)
-- **UI Library**: Shadcn/ui + TailwindCSS
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **UI Library**: TailwindCSS (Custom Components)
 - **Icons**: Lucide React
-- **State Management**: Zustand (최소화, Server Components 우선)
-- **Data Fetching**: TanStack Query (React Query)
+- **State Management**: Zustand
+- **Data Fetching**: 기본 fetch API
 - **Forms**: React Hook Form + Zod
 - **Charts**: Recharts
 
 #### Backend
-- **Framework**: NestJS
-- **Language**: TypeScript (strict mode)
-- **Database**: PostgreSQL 15
-- **ORM**: Prisma
-- **Authentication**: JWT + Passport
-- **Validation**: class-validator
-- **API Documentation**: Swagger
+- **Framework**: FastAPI
+- **Language**: Python 3.10+
+- **Database**: JSON File-based Storage
+- **ORM**: 없음 (직접 JSON 파일 관리)
+- **Authentication**: JWT (python-jose)
+- **Validation**: Pydantic
+- **API Documentation**: OpenAPI (Swagger)
 
 #### DevOps
-- **Containerization**: Docker + Docker Compose
 - **Version Control**: Git
-- **Package Manager**: npm (일관성 유지)
+- **Package Manager**: npm (프론트엔드), pip (백엔드)
+- **Deployment**: Vercel (프론트엔드 추천), Railway (백엔드 추천)
 
 #### 개발 원칙 (CLAUDE.md 기반)
 - ✅ SSR First - Server Components 기본 사용
@@ -166,35 +166,204 @@
 - ✅ No fallbacks/workarounds (근본 원인 해결)
 - ✅ 매 변경 후 빌드 테스트 필수
 
-### 4.2 주요 모듈
-1. 사용자 관리 모듈
-2. 업무 관리 모듈
-3. 부서 관리 모듈
-4. 대시보드 모듈
-5. 알림 모듈
-6. 파일 관리 모듈
-7. 리포팅 모듈
+### 4.2 현재 구현된 모듈 및 API
+
+#### 4.2.1 인증 모듈 (`/api/auth`)
+**구현 완료**
+- `POST /api/auth/register` - 회원가입
+- `POST /api/auth/login` - 로그인
+- `GET /api/auth/me` - 현재 사용자 정보 조회
+
+**기능**:
+- JWT 기반 인증
+- 비밀번호 해싱 (bcrypt)
+- 역할 기반 인증 (USER, ADMIN)
+
+#### 4.2.2 업무 관리 모듈 (`/api/tasks`)
+**구현 완료**
+- `POST /api/tasks` - 업무 생성
+- `GET /api/tasks` - 업무 목록 조회 (필터링, 페이지네이션)
+- `GET /api/tasks/my-tasks` - 내 업무 조회
+- `GET /api/tasks/{task_id}` - 업무 상세 조회
+- `PATCH /api/tasks/{task_id}` - 업무 수정
+- `DELETE /api/tasks/{task_id}` - 업무 삭제
+- `PATCH /api/tasks/{task_id}/assign` - 업무 할당
+
+**기능**:
+- 업무 CRUD
+- 상태 관리 (TODO, IN_PROGRESS, COMPLETED, ON_HOLD)
+- 우선순위 (LOW, MEDIUM, HIGH, URGENT)
+- 업무 타입 (PERSONAL, DEPARTMENT)
+- 업무 할당 (다중 사용자)
+- 진행률 추적
+
+#### 4.2.3 부서 관리 모듈 (`/api/departments`)
+**구현 완료**
+- `POST /api/departments` - 부서 생성
+- `GET /api/departments` - 부서 목록 조회
+- `GET /api/departments/{dept_id}` - 부서 상세 조회
+- `PATCH /api/departments/{dept_id}` - 부서 수정
+- `DELETE /api/departments/{dept_id}` - 부서 삭제
+- `POST /api/departments/{dept_id}/members` - 멤버 추가
+- `DELETE /api/departments/{dept_id}/members/{user_id}` - 멤버 제거
+- `GET /api/departments/{dept_id}/members` - 멤버 목록 조회
+
+**기능**:
+- 부서 CRUD
+- 멤버 관리 (LEADER, MEMBER 역할)
+- 부서 생성자 자동 리더 할당
+
+#### 4.2.4 제출 관리 모듈 (`/api/submissions`)
+**구현 완료**
+- `POST /api/submissions` - 업무 제출
+- `GET /api/submissions` - 제출 목록 조회 (필터링, 페이지네이션)
+- `GET /api/submissions/my-submissions` - 내 제출 현황 조회
+- `GET /api/submissions/{submission_id}` - 제출 상세 조회
+- `PATCH /api/submissions/{submission_id}/approve` - 제출 승인
+- `PATCH /api/submissions/{submission_id}/reject` - 제출 반려
+- `DELETE /api/submissions/{submission_id}` - 제출 삭제
+
+**기능**:
+- 업무 제출 워크플로우
+- 승인/반려 프로세스
+- 피드백 메시지
+- 제출 상태 관리 (PENDING, APPROVED, REJECTED)
+
+#### 4.2.5 통계 모듈 (`/api/stats`)
+**구현 완료**
+- `GET /api/stats/dashboard` - 대시보드 통계
+- `GET /api/stats/tasks` - 업무 통계
+- `GET /api/stats/departments/{dept_id}` - 부서별 통계
+- `GET /api/stats/users/{user_id}` - 사용자별 통계
+
+**기능**:
+- 전체 업무 통계
+- 상태별 업무 수
+- 우선순위별 분포
+- 타입별 분포
+- 부서별/사용자별 통계
+
+#### 4.2.6 프론트엔드 페이지
+**구현 완료**
+- `/login` - 로그인 페이지
+- `/register` - 회원가입 페이지
+- `/dashboard` - 메인 대시보드
+- `/my-tasks` - 내 업무 관리
+- `/department-tasks` - 부서 업무 관리
+- `/submissions` - 제출 현황
+- `/statistics` - 통계 페이지
+- `/profile` - 프로필 설정
+- `/settings` - 설정
+- `/trash` - 휴지통
+
+**구현되지 않은 기능**:
+- 알림 시스템
+- 파일 첨부 기능
+- 댓글/협업 기능
+- 실시간 업데이트
+- 이메일 알림
+- 외부 시스템 연동
 
 ---
 
-## 5. 데이터 모델 (개념)
+## 5. 데이터 모델 (현재 구현)
 
-### 5.1 주요 엔티티
-- User (사용자)
-- Department (부서)
-- Task (업무)
-- TaskAssignment (업무 할당)
-- TaskSubmission (업무 제출)
+### 5.1 구현된 엔티티
+#### User (사용자)
+```python
+{
+  "id": "uuid",
+  "email": "string",
+  "password": "hashed_string",
+  "name": "string",
+  "role": "USER | ADMIN",
+  "avatar": "string | null",
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+```
+
+#### Task (업무)
+```python
+{
+  "id": "uuid",
+  "title": "string",
+  "description": "string | null",
+  "status": "TODO | IN_PROGRESS | COMPLETED | ON_HOLD",
+  "priority": "LOW | MEDIUM | HIGH | URGENT",
+  "progress": "number (0-100)",
+  "type": "PERSONAL | DEPARTMENT",
+  "startDate": "datetime | null",
+  "dueDate": "datetime | null",
+  "createdById": "uuid",
+  "departmentId": "uuid | null",
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+```
+
+#### TaskAssignment (업무 할당)
+```python
+{
+  "id": "uuid",
+  "taskId": "uuid",
+  "userId": "uuid",
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+```
+
+#### Department (부서)
+```python
+{
+  "id": "uuid",
+  "name": "string",
+  "description": "string | null",
+  "createdById": "uuid",
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+```
+
+#### DepartmentMember (부서 멤버)
+```python
+{
+  "id": "uuid",
+  "departmentId": "uuid",
+  "userId": "uuid",
+  "role": "LEADER | MEMBER",
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+```
+
+#### Submission (제출)
+```python
+{
+  "id": "uuid",
+  "taskId": "uuid",
+  "userId": "uuid",
+  "status": "PENDING | APPROVED | REJECTED",
+  "content": "string | null",
+  "feedback": "string | null",
+  "submittedAt": "datetime",
+  "reviewedAt": "datetime | null",
+  "reviewedById": "uuid | null",
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+```
+
+### 5.2 구현된 관계
+- User ↔ Department (다대다, DepartmentMember를 통해)
+- Department ↔ Task (일대다)
+- User ↔ Task (다대다, TaskAssignment를 통해)
+- Task ↔ Submission (일대다)
+
+### 5.3 구현되지 않은 엔티티
 - Comment (댓글)
 - Notification (알림)
 - Attachment (첨부파일)
-
-### 5.2 주요 관계
-- User ↔ Department (다대다)
-- Department ↔ Task (일대다)
-- User ↔ Task (다대다, TaskAssignment를 통해)
-- Task ↔ TaskSubmission (일대다)
-- Task ↔ Comment (일대다)
 
 ---
 
@@ -399,34 +568,46 @@
 
 ---
 
-## 8. 우선순위
+## 8. 개발 현황 및 우선순위
 
-### Phase 1 (MVP - 3개월)
-- 사용자 인증/인가
-- 기본 업무 CRUD
-- 개인 업무 관리
-- 간단한 대시보드
-- 업무 상태 관리
+### ✅ Phase 1 (MVP) - 완료
+- ✅ 사용자 인증/인가 (JWT 기반)
+- ✅ 기본 업무 CRUD
+- ✅ 개인 업무 관리
+- ✅ 간단한 대시보드
+- ✅ 업무 상태 관리
+- ✅ 우선순위 및 진행률 관리
 
-### Phase 2 (4-6개월)
-- 부서 업무 관리
-- 업무 할당 기능
-- 제출/승인 프로세스
-- 알림 시스템
-- 고급 대시보드
+### ✅ Phase 2 - 부분 완료
+- ✅ 부서 업무 관리
+- ✅ 업무 할당 기능
+- ✅ 제출/승인 프로세스
+- ✅ 부서 멤버 관리
+- ✅ 통계 API
+- ❌ 알림 시스템 (미구현)
+- ❌ 고급 대시보드 (기본만 구현)
 
-### Phase 3 (7-9개월)
-- 통계/리포팅 기능
-- 협업 기능 (댓글, 멘션)
-- 모바일 최적화
-- 성능 최적화
-- 고급 검색/필터
+### 🔄 Phase 3 - 진행 중
+- ✅ 통계/리포팅 기능 (API 완료, UI 기본)
+- ❌ 협업 기능 (댓글, 멘션) - 미구현
+- ❌ 모바일 최적화 - 미구현
+- ❌ 성능 최적화 - 필요
+- ❌ 고급 검색/필터 - 기본만 구현
 
-### Phase 4 (10-12개월)
-- AI 기반 업무 추천
-- 자동화 워크플로우
-- 외부 시스템 연동
-- 고급 분석 대시보드
+### 📋 Phase 4 - 계획
+- ❌ 파일 첨부 기능
+- ❌ 실시간 알림
+- ❌ 이메일 알림
+- ❌ AI 기반 업무 추천
+- ❌ 자동화 워크플로우
+- ❌ 외부 시스템 연동
+- ❌ 고급 분석 대시보드
+
+### 🐛 알려진 이슈
+- 프론트엔드 500 에러 (초기 로딩 시)
+- 데이터베이스 마이그레이션 필요 (JSON → PostgreSQL 권장)
+- 에러 핸들링 개선 필요
+- 테스트 코드 부재
 
 ---
 
@@ -490,6 +671,7 @@
 | 1.0 | 2025-11-13 | 초안 작성 | |
 | 1.1 | 2025-11-13 | UI.png 기반 UI/UX 디자인 명세 추가, 화면 구성 상세화, 색상 체계 및 컴포넌트 명세 추가 | |
 | 1.2 | 2025-11-13 | CLAUDE.md 개발 원칙 반영, 기술 스택 확정, 개발 원칙 추가 | |
+| 2.0 | 2025-11-18 | **실제 구현 현황 반영 업데이트** - 기술 스택 업데이트 (FastAPI + JSON DB), 구현된 API 엔드포인트 문서화, 데이터 모델 실제 스키마 반영, 개발 현황 및 알려진 이슈 추가 | Claude Code |
 
 ---
 
