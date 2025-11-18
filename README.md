@@ -21,97 +21,48 @@
 - Recharts (Data Visualization)
 
 ### Backend
-- NestJS + TypeScript
-- Prisma ORM + SQLite
+- FastAPI + Python 3.8+
+- JSON File-based Database
 - JWT Authentication
-- Swagger API Documentation
+- OpenAPI (Swagger) Documentation
 
 ## 🚀 빠른 시작
 
 ### 필수 요구사항
-- Node.js 18+
+- Python 3.8 이상
+- Node.js 18+ (Frontend용)
 - npm
 
-### 원샷 설치 및 실행 ⚡ (추천)
+### 빠른 시작 ⚡ (추천)
 ```bash
 # 1. 저장소 클론
 git clone <repository-url>
 cd TaskManagement
 
-# 2. 초기 설정 (처음 한 번만)
-./setup.sh
+# 2. Backend 설정 및 실행
+cd backend
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
 
-# 3. 개발 서버 시작
-./dev.sh start
+# 3. Frontend 설정 및 실행 (새 터미널)
+cd frontend
+npm install
+npm run dev
 ```
-
-**자동으로 수행되는 작업:**
-- 📦 Frontend & Backend 의존성 설치
-- 🗄️ Prisma Client 생성 및 SQLite DB 초기화
-- 🚀 Backend (3001) & Frontend (3000) 서버 시작
 
 완료!
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:3001/api
 - **API Docs**: http://localhost:3001/api/docs
 
-### 수동 설치 (선택)
-<details>
-<summary>수동으로 설정하려면 클릭</summary>
-
-#### 1. Backend 초기화 및 시작
+### 환경 변수 설정 (선택)
+Backend에 `.env` 파일을 생성하여 설정을 변경할 수 있습니다:
 ```bash
 cd backend
-
-# 의존성 설치
-npm install
-
-# Prisma Client 생성
-npx prisma generate
-
-# 데이터베이스 초기화 (SQLite)
-npx prisma migrate dev --name init
-# 또는
-npx prisma db push
-
-# 개발 서버 시작
-npm run start:dev
-```
-
-#### 2. Frontend 시작
-```bash
-cd frontend
-
-# 의존성 설치
-npm install
-
-# .env.local 생성
-echo "NEXT_PUBLIC_API_URL=http://localhost:3001/api" > .env.local
-
-# 개발 서버 시작
-npm run dev
-```
-
-#### 3. 데이터베이스 재설정 (필요시)
-```bash
-cd backend
-
-# DB 파일 삭제
-rm prisma/dev.db
-
-# 재초기화
-npx prisma migrate dev --name init
-```
-</details>
-
-### 개발 스크립트 명령어
-```bash
-./setup.sh        # 초기 설정 (처음 한 번만)
-./dev.sh start    # 서버 시작
-./dev.sh stop     # 서버 중지
-./dev.sh restart  # 서버 재시작
-./dev.sh status   # 상태 확인
-./dev.sh logs all # 로그 확인
+cp .env.example .env
+# 필요에 따라 .env 파일 수정
 ```
 
 ## 📚 상세 문서
@@ -137,13 +88,12 @@ TaskManagement/
 └── UI.png            # UI 디자인 참고
 ```
 
-## 🧪 테스트 및 빌드
+## 🧪 빌드
 ```bash
-# 백엔드 빌드
-cd backend && npm run build
-
 # 프론트엔드 빌드
 cd frontend && npm run build
+
+# 백엔드는 Python 스크립트로 별도 빌드 불필요
 ```
 
 ## 🚀 배포
