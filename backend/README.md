@@ -1,300 +1,325 @@
-# Backend - NestJS API Server
+# Backend - FastAPI Server
 
-업무 관리 시스템의 백엔드 REST API 서버입니다.
+업무 관리 시스템의 FastAPI 기반 REST API 서버입니다.
 
 ## 🏗️ 기술 스택
-- **Framework**: NestJS 10
-- **Language**: TypeScript (strict mode)
-- **Database**: SQLite (Prisma ORM)
-- **Authentication**: JWT + Passport
-- **Validation**: class-validator + class-transformer
-- **API Documentation**: Swagger/OpenAPI
+- **Framework**: FastAPI
+- **Language**: Python 3.8+
+- **Database**: JSON File-based Storage
+- **Authentication**: JWT (python-jose)
+- **Validation**: Pydantic
+- **API Documentation**: OpenAPI (Swagger)
 
 ## 📂 프로젝트 구조
 ```
 backend/
-├── prisma/
-│   ├── schema.prisma       # Database schema
-│   └── migrations/         # Database migrations
-├── src/
-│   ├── auth/               # Authentication module (JWT)
-│   ├── users/              # User management module
-│   ├── tasks/              # Task CRUD module
-│   ├── departments/        # Department management module
-│   ├── submissions/        # Task submission & approval module
-│   ├── stats/              # Statistics & analytics module
-│   ├── prisma/             # Prisma service
-│   └── main.ts             # Application entry point
-├── test/                   # E2E tests
-└── package.json
+├── app/
+│   ├── database/
+│   │   ├── json_db.py          # JSON file database implementation
+│   │   └── data.json           # Data storage (auto-created)
+│   ├── models/
+│   │   ├── user.py             # User models
+│   │   ├── task.py             # Task models
+│   │   ├── department.py       # Department models
+│   │   └── submission.py       # Submission models
+│   ├── routes/
+│   │   ├── auth.py             # Authentication endpoints
+│   │   ├── tasks.py            # Task CRUD endpoints
+│   │   ├── departments.py      # Department endpoints
+│   │   ├── submissions.py      # Submission endpoints
+│   │   └── stats.py            # Statistics endpoints
+│   └── utils/
+│       └── security.py         # JWT & password utilities
+├── main.py                     # Application entry point
+├── requirements.txt            # Python dependencies
+├── .env                        # Environment variables
+└── railway.json                # Railway deployment config
 ```
 
 ## 🚀 시작하기
 
-### 1. 의존성 설치
+### 1. Python 가상환경 생성
 ```bash
-npm install
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 ```
 
-### 2. 환경 변수 설정
-`.env` 파일 생성:
+### 2. 의존성 설치
+```bash
+pip install -r requirements.txt
+```
+
+### 3. 환경 변수 설정 (선택)
+`.env` 파일은 이미 존재하며, 필요시 수정:
 ```env
-DATABASE_URL="file:./dev.db"
-JWT_SECRET="your-secret-key-change-this-in-production"
-JWT_EXPIRES_IN="7d"
+JWT_SECRET=dev-secret-key-change-in-production-please
+JWT_EXPIRES_IN=7d
 PORT=3001
+FRONTEND_URL=http://localhost:3000
 ```
 
-### 3. 데이터베이스 설정
+### 4. 서버 실행
 ```bash
-# Prisma Client 생성
-npx prisma generate
+# 개발 모드 (자동 리로드)
+python main.py
 
-# 데이터베이스 마이그레이션
-npx prisma migrate dev
-
-# 데이터베이스 초기화 (선택사항)
-npx prisma db seed
-```
-
-### 4. 개발 서버 실행
-```bash
-# 개발 모드
-npm run start:dev
-
-# 프로덕션 모드
-npm run build
-npm run start:prod
+# 또는 uvicorn 직접 실행
+uvicorn main:app --reload --port 3001
 ```
 
 서버: `http://localhost:3001`
-API 문서: `http://localhost:3001/api`
+API 문서: `http://localhost:3001/api/docs`
+ReDoc: `http://localhost:3001/api/redoc`
 
 ## 📝 주요 모듈
 
-### Auth Module
+### Auth Routes (`/api/auth`)
 JWT 기반 인증 시스템
-- 회원가입, 로그인, 로그아웃
-- Access Token 발급 및 검증
-- Guard를 통한 엔드포인트 보호
 
 **Endpoints**:
 - `POST /auth/register` - 회원가입
 - `POST /auth/login` - 로그인
-- `GET /auth/me` - 현재 사용자 정보
+- `GET /auth/me` - 현재 사용자 정보 (인증 필요)
 
-### Users Module
-사용자 및 프로필 관리
-- 사용자 정보 CRUD
-- 프로필 업데이트
+**Request Example**:
+```json
+// POST /auth/register
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "name": "홍길동",
+  "role": "USER"
+}
 
-**Endpoints**:
-- `GET /users` - 사용자 목록
-- `GET /users/:id` - 사용자 상세
-- `PUT /users/:id` - 사용자 정보 수정
+// Response
+{
+  "access_token": "eyJhbGciOiJ...",
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "name": "홍길동",
+    "role": "USER"
+  }
+}
+```
 
-### Tasks Module
+### Tasks Routes (`/api/tasks`)
 업무 관리 핵심 모듈
-- 업무 생성, 수정, 삭제
-- 상태 및 진행률 업데이트
-- 업무 할당 및 필터링
 
 **Endpoints**:
 - `GET /tasks` - 업무 목록 (필터링, 페이지네이션)
+  - Query params: `status`, `priority`, `type`, `departmentId`, `assignedUserId`, `search`, `page`, `limit`
+- `GET /tasks/my-tasks` - 내 업무 목록
 - `POST /tasks` - 업무 생성
-- `GET /tasks/:id` - 업무 상세
-- `PUT /tasks/:id` - 업무 수정
-- `DELETE /tasks/:id` - 업무 삭제
-- `PATCH /tasks/:id/status` - 상태 변경
-- `PATCH /tasks/:id/progress` - 진행률 업데이트
-- `POST /tasks/:id/assign` - 업무 할당
+- `GET /tasks/{task_id}` - 업무 상세
+- `PATCH /tasks/{task_id}` - 업무 수정
+- `DELETE /tasks/{task_id}` - 업무 삭제
+- `PATCH /tasks/{task_id}/assign` - 사용자 할당
 
-### Departments Module
+**Filters**:
+- `status`: TODO, IN_PROGRESS, COMPLETED, ON_HOLD
+- `priority`: LOW, MEDIUM, HIGH, URGENT
+- `type`: PERSONAL, DEPARTMENT
+
+### Departments Routes (`/api/departments`)
 부서 및 팀 관리
-- 부서 생성 및 관리
-- 팀원 추가/제거
-- 부서별 역할 관리
 
 **Endpoints**:
 - `GET /departments` - 부서 목록
 - `POST /departments` - 부서 생성
-- `GET /departments/:id` - 부서 상세 (멤버 포함)
-- `POST /departments/:id/members` - 팀원 추가
-- `DELETE /departments/:id/members/:userId` - 팀원 제거
+- `GET /departments/{dept_id}` - 부서 상세
+- `PATCH /departments/{dept_id}` - 부서 수정
+- `DELETE /departments/{dept_id}` - 부서 삭제
+- `POST /departments/{dept_id}/members` - 멤버 추가
+- `DELETE /departments/{dept_id}/members/{user_id}` - 멤버 제거
+- `GET /departments/{dept_id}/members` - 멤버 목록
 
-### Submissions Module
+### Submissions Routes (`/api/submissions`)
 업무 제출 및 승인 워크플로우
-- 업무 제출
-- 승인/반려 처리
-- 피드백 관리
 
 **Endpoints**:
-- `GET /submissions` - 제출 목록
+- `GET /submissions` - 제출 목록 (필터링)
+- `GET /submissions/my-submissions` - 내 제출 목록
 - `POST /submissions` - 업무 제출
-- `PUT /submissions/:id/approve` - 승인
-- `PUT /submissions/:id/reject` - 반려
+- `GET /submissions/{submission_id}` - 제출 상세
+- `PATCH /submissions/{submission_id}/approve` - 승인
+- `PATCH /submissions/{submission_id}/reject` - 반려
+- `DELETE /submissions/{submission_id}` - 제출 삭제
 
-### Stats Module
+### Stats Routes (`/api/stats`)
 통계 및 분석 데이터
-- 대시보드 통계
-- 업무 상태별/우선순위별/유형별 통계
-- 월별 트렌드 데이터
 
 **Endpoints**:
 - `GET /stats/dashboard` - 대시보드 통계
 - `GET /stats/tasks` - 업무 통계
-- `GET /stats/monthly-trend` - 월별 트렌드
+- `GET /stats/departments/{dept_id}` - 부서 통계
+- `GET /stats/users/{user_id}` - 사용자 통계
 
-## 🗄️ 데이터베이스 스키마
+## 🗄️ 데이터베이스
 
-### 주요 모델
-- **User** - 사용자 계정
-- **Profile** - 사용자 프로필 (1:1)
-- **Department** - 부서
-- **DepartmentMember** - 부서 멤버십
-- **Task** - 업무
-- **TaskAssignment** - 업무 할당
-- **Submission** - 업무 제출
-- **Notification** - 알림
+### JSON File-based Database
+`app/database/json_db.py`에서 구현된 간단하고 가벼운 파일 기반 데이터베이스:
 
-### Prisma 관리 명령어
+**특징**:
+- Thread-safe 파일 I/O
+- 자동 타임스탬프 (createdAt, updatedAt)
+- CRUD 연산 지원
+- 필터링 및 쿼리 기능
+
+**Collections**:
+- `users` - 사용자 계정
+- `tasks` - 업무
+- `departments` - 부서
+- `department_members` - 부서 멤버십
+- `task_assignments` - 업무 할당
+- `task_submissions` - 업무 제출
+
+**데이터 위치**: `app/database/data.json` (자동 생성)
+
+### 데이터베이스 초기화
+서버 시작 시 자동으로 `data.json` 파일이 생성됩니다. 초기화하려면:
 ```bash
-# Studio로 데이터베이스 확인
-npx prisma studio
-
-# 스키마 동기화
-npx prisma db push
-
-# 마이그레이션 생성
-npx prisma migrate dev --name <migration_name>
-
-# 프로덕션 마이그레이션
-npx prisma migrate deploy
+rm app/database/data.json
+python main.py  # 새 파일 자동 생성
 ```
 
 ## 🔐 인증 및 보안
 
-### JWT 토큰 구조
+### JWT 토큰
+- **알고리즘**: HS256
+- **만료 시간**: 7일 (기본)
+- **토큰 구조**:
 ```json
 {
   "sub": "user-id",
   "email": "user@example.com",
-  "iat": 1234567890,
   "exp": 1234567890
 }
 ```
 
-### Guards
-- **JwtAuthGuard** - JWT 토큰 검증 (기본 적용)
-- **Public 데코레이터** - 인증 없이 접근 가능한 엔드포인트
-
 ### 비밀번호 암호화
-- bcrypt를 사용한 해시 처리 (saltRounds: 10)
+- **라이브러리**: passlib + bcrypt
+- **해시 라운드**: 기본 설정
 
-## 🧪 테스트
-```bash
-# Unit tests
-npm run test
-
-# E2E tests
-npm run test:e2e
-
-# Test coverage
-npm run test:cov
+### API 인증
+모든 보호된 엔드포인트는 `Authorization` 헤더 필요:
+```
+Authorization: Bearer <access_token>
 ```
 
 ## 📊 API 문서
-Swagger UI가 자동으로 생성됩니다:
-- 개발: `http://localhost:3001/api`
-- 모든 엔드포인트 문서화
-- Request/Response 스키마
-- Try it out 기능
+
+FastAPI가 자동으로 생성하는 대화형 문서:
+
+**Swagger UI**: `http://localhost:3001/api/docs`
+- 모든 엔드포인트 테스트 가능
+- Request/Response 스키마 확인
+- "Try it out" 기능
+
+**ReDoc**: `http://localhost:3001/api/redoc`
+- 깔끔한 읽기 전용 문서
+- 검색 기능
+- 코드 샘플
 
 ## 🔧 개발 가이드
 
-### 새 모듈 생성
-```bash
-nest g module <module-name>
-nest g controller <module-name>
-nest g service <module-name>
+### 새 라우트 추가
+1. `app/routes/`에 새 파일 생성
+2. APIRouter 정의
+3. `main.py`에 라우터 등록
+
+```python
+# app/routes/example.py
+from fastapi import APIRouter
+
+router = APIRouter(prefix="/example", tags=["example"])
+
+@router.get("")
+async def get_examples():
+    return {"message": "Hello"}
 ```
 
-### DTO 및 Validation
-- `class-validator` 사용
-- 모든 입력 데이터 검증
-- Swagger 데코레이터로 문서화
+```python
+# main.py
+from app.routes import example
+app.include_router(example.router, prefix="/api")
+```
 
-```typescript
-import { IsString, IsNotEmpty } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+### 새 모델 추가
+Pydantic 모델 사용:
+```python
+from pydantic import BaseModel
 
-export class CreateTaskDto {
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  title: string;
-}
+class ExampleCreate(BaseModel):
+    name: str
+    description: str | None = None
 ```
 
 ### 에러 처리
-- NestJS 내장 예외 사용
-- 일관된 에러 응답 형식
+FastAPI HTTPException 사용:
+```python
+from fastapi import HTTPException, status
 
-```typescript
-throw new NotFoundException('Task not found');
-throw new BadRequestException('Invalid input');
-throw new UnauthorizedException('Invalid credentials');
+raise HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND,
+    detail="Item not found"
+)
 ```
 
-## 📦 빌드 및 배포
+## 🚀 배포
+
+### Railway 배포
+1. `railway.json` 설정 확인
+2. 환경 변수 설정 (JWT_SECRET, FRONTEND_URL)
+3. GitHub 연동 및 자동 배포
+
+### 환경 변수
+프로덕션 환경에서 반드시 설정:
+- `JWT_SECRET`: 강력한 랜덤 문자열
+- `JWT_EXPIRES_IN`: 토큰 만료 시간
+- `FRONTEND_URL`: CORS 설정용
+- `PORT`: Railway가 자동 설정
+
+## 🧪 테스트
+
 ```bash
-# 프로덕션 빌드
-npm run build
+# API 테스트
+curl -X POST http://localhost:3001/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@test.com","password":"test123","name":"Test User"}'
 
-# 빌드 결과 실행
-npm run start:prod
+# 헬스 체크
+curl http://localhost:3001/api/health
 ```
-
-## 🐛 디버깅
-```bash
-# 디버그 모드로 실행
-npm run start:debug
-```
-
-VSCode에서 디버깅:
-1. F5 또는 Debug 패널 사용
-2. Breakpoint 설정
-3. 변수 및 호출 스택 확인
-
-## 📝 로깅
-- NestJS 내장 Logger 사용
-- 환경별로 로그 레벨 조정 가능
-
-```typescript
-this.logger.log('Info message');
-this.logger.error('Error message');
-this.logger.warn('Warning message');
-this.logger.debug('Debug message');
-```
-
-## 🔄 데이터베이스 마이그레이션 전략
-1. 스키마 변경 시 마이그레이션 생성
-2. 마이그레이션 파일 검토
-3. 개발 환경에서 테스트
-4. 프로덕션 적용
 
 ## 📌 참고사항
-- TypeScript strict mode 사용
-- ESLint + Prettier로 코드 포맷팅
-- 모든 API는 /api prefix 사용
-- CORS 설정으로 프론트엔드와 연결
 
-## 🤝 기여하기
-1. 코드 작성 전 이슈 확인
-2. 테스트 코드 작성
-3. 빌드 및 테스트 통과 확인
-4. Pull Request 생성
+- **Thread-safe**: JSON 파일 접근은 Lock으로 보호됨
+- **CORS**: Frontend URL 설정 필요
+- **Auto-reload**: 개발 모드에서 코드 변경 시 자동 재시작
+- **Data persistence**: JSON 파일로 데이터 영구 저장
+- **Demo용**: 프로덕션에서는 실제 데이터베이스 권장
+
+## 🐛 디버깅
+
+### 로그 확인
+```bash
+# 서버 로그는 터미널에 출력됨
+python main.py
+```
+
+### 데이터 확인
+```bash
+# JSON 파일 직접 확인
+cat app/database/data.json | python -m json.tool
+```
+
+### 일반적인 문제
+1. **포트 충돌**: `PORT` 환경 변수 변경
+2. **JWT 오류**: `JWT_SECRET` 설정 확인
+3. **CORS 오류**: `FRONTEND_URL` 설정 확인
 
 ---
 
-**최종 업데이트**: 2025-11-13
+**최종 업데이트**: 2025-11-18
+**버전**: 2.0 (FastAPI)
