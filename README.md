@@ -1,5 +1,7 @@
 # TaskManagement (UI Mock + JSON API)
 
+![UI Preview](./UI.png)
+
 Next.js(App Router) + FastAPI 데모로 UI.png 스타일 대시보드를 JSON 파일 데이터를 통해 보여주는 샘플입니다. DB는 사용하지 않고 `backend/data/*.json`을 입출력합니다.
 
 ## 구조
