@@ -28,6 +28,15 @@ cd ../frontend && npm install
 
 ## 환경 변수
 - `BACKEND_URL` : 프론트가 호출할 API 베이스 URL (기본 `http://127.0.0.1:8000`)
+- `NEXT_PUBLIC_BACKEND_URL` : 프론트엔드 빌드 시 사용 (프로덕션 배포용)
+
+## 🚀 배포 (Vercel + Railway)
+
+프로덕션 배포를 원하시나요? **[DEPLOYMENT.md](./DEPLOYMENT.md)** 가이드를 참고하세요!
+
+- **프론트엔드**: Vercel에 자동 배포
+- **백엔드**: Railway에 자동 배포
+- GitHub push 시 자동 재배포
 
 ## 제공 엔드포인트(FastAPI)
 - `GET /health`
